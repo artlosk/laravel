@@ -1,0 +1,63 @@
+<?php
+
+use App\Http\Controllers\backend\AdminController;
+use App\Http\Controllers\backend\PostController as BackendPostController;
+use App\Http\Controllers\backend\RolePermissionController;
+use App\Http\Controllers\frontend\DashboardController;
+use App\Http\Controllers\frontend\PostController as FrontendPostController;
+use App\Http\Controllers\frontend\ProfileController as FrontendProfileController;
+use App\Http\Controllers\backend\ProfileController as BackendProfileController;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    return view('frontend.welcome');
+});
+
+Auth::routes();
+
+//Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+
+Route::get('/posts', [FrontendPostController::class, 'index'])->name('frontend.posts.index')->middleware('permission:read-posts');
+Route::get('/posts/{post}', [FrontendPostController::class, 'show'])->name('frontend.posts.show')->middleware('permission:read-posts');
+
+// Публичные маршруты для профиля
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('frontend.dashboard');
+    Route::match(['get', 'post'], '/profile', [FrontendProfileController::class, 'update'])->name('frontend.profile');
+    Route::match(['get', 'post'], '/password', [FrontendProfileController::class, 'changePassword'])->name('frontend.password');
+});
+
+Route::middleware(['auth', 'permission:access-admin-panel'])->prefix('admin')->group(function () {
+    Route::get('/dashboard', [AdminController::class, 'index'])->name('backend.dashboard');
+    // Маршрут для профиля
+    Route::match(['get', 'post'], '/profile', [BackendProfileController::class, 'update'])->name('backend.profile');
+    Route::match(['get', 'post'], '/password', [BackendProfileController::class, 'changePassword'])->name('backend.password');
+
+    Route::middleware(['auth', 'permission:read-posts'])->group(function () {
+        Route::get('/posts', [BackendPostController::class, 'index'])->name('backend.posts.index');
+        Route::match(['get', 'post'], '/posts/create', [BackendPostController::class, 'create'])->name('backend.posts.create');
+        Route::match(['get', 'put'], '/posts/{post}/update', [BackendPostController::class, 'update'])->name('backend.posts.update');
+        Route::get('/posts/{post}', [BackendPostController::class, 'show'])->name('backend.posts.show');
+        Route::delete('/posts/{post}', [BackendPostController::class, 'destroy'])->name('backend.posts.delete');
+    });
+    Route::middleware(['auth', 'permission:manage-roles|manage-permissions'])->group(function () {
+        Route::get('/roles', [RolePermissionController::class, 'indexRoles'])->name('backend.roles.index');
+        Route::get('/roles/create', [RolePermissionController::class, 'createRole'])->name('backend.roles.create');
+        Route::post('/roles', [RolePermissionController::class, 'storeRole'])->name('backend.roles.store');
+        Route::get('/roles/{role}/edit', [RolePermissionController::class, 'editRole'])->name('backend.roles.edit');
+        Route::put('/roles/{role}', [RolePermissionController::class, 'updateRole'])->name('backend.roles.update');
+        Route::delete('/roles/{role}', [RolePermissionController::class, 'destroyRole'])->name('backend.roles.destroy');
+
+        Route::get('/permissions', [RolePermissionController::class, 'indexPermissions'])->name('backend.permissions.index');
+        Route::get('/permissions/create', [RolePermissionController::class, 'createPermission'])->name('backend.permissions.create');
+        Route::post('/permissions', [RolePermissionController::class, 'storePermission'])->name('backend.permissions.store');
+        Route::get('/permissions/{permission}/edit', [RolePermissionController::class, 'editPermission'])->name('backend.permissions.edit');
+        Route::put('/permissions/{permission}', [RolePermissionController::class, 'updatePermission'])->name('backend.permissions.update');
+        Route::delete('/permissions/{permission}', [RolePermissionController::class, 'destroyPermission'])->name('backend.permissions.destroy');
+
+        Route::get('/users/roles-permissions', [RolePermissionController::class, 'manageUserRolesPermissions'])->name('backend.roles.manage');
+        Route::post('/users/roles-permissions', [RolePermissionController::class, 'updateUserRolesPermissions'])->name('backend.roles.update-user');
+        Route::get('/users/{user}/roles-permissions', [RolePermissionController::class, 'getUserRolesPermissions'])->name('backend.roles.get-user');
+    });
+});

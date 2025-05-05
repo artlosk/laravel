@@ -3,234 +3,304 @@
 namespace Tests\Feature\backend;
 
 use App\Models\User;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Log;
-use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class RolePermissionControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected $admin;
-    protected $user;
+    protected $adminUser;
+    protected $regularUser;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Create permissions
+        // Создаем тестовые роли и разрешения
+        Permission::create(['name' => 'access-admin-panel']);
         Permission::create(['name' => 'manage-roles']);
         Permission::create(['name' => 'manage-permissions']);
-        Permission::create(['name' => 'access-admin-panel']);
         Permission::create(['name' => 'read-posts']);
-        Permission::create(['name' => 'create-posts']);
-        Permission::create(['name' => 'edit-posts']);
-        Permission::create(['name' => 'delete-posts']);
 
-        // Create admin role
         $adminRole = Role::create(['name' => 'admin']);
-        $adminRole->givePermissionTo([
-            'manage-roles',
-            'manage-permissions',
-            'access-admin-panel',
-            'read-posts',
-            'create-posts',
-            'edit-posts',
-            'delete-posts',
-        ]);
+        $adminRole->givePermissionTo(['access-admin-panel', 'manage-roles', 'manage-permissions']);
 
-        // Create user role
-        Role::create(['name' => 'user']);
+        $editorRole = Role::create(['name' => 'editor']);
+        $editorRole->givePermissionTo('read-posts');
 
-        // Create admin user
-        $this->admin = User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@example.com',
-            'password' => bcrypt('password'),
-        ]);
-        $this->admin->assignRole('admin');
+        // Создаем тестовых пользователей
+        $this->adminUser = User::factory()->create();
+        $this->adminUser->assignRole('admin');
 
-        // Create regular user
-        $this->user = User::factory()->create([
-            'name' => 'User',
-            'email' => 'user@example.com',
-            'password' => bcrypt('password'),
-        ]);
-        $this->user->assignRole('user');
-        $this->user->givePermissionTo('read-posts');
+        $this->regularUser = User::factory()->create();
+        $this->regularUser->assignRole('editor');
     }
 
-    public function test_index_roles_authorized()
+    /** @test */
+    public function admin_can_view_roles_index()
     {
-        $response = $this->actingAs($this->admin)->get(route('backend.roles.index'));
-        $response->assertStatus(200);
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('backend.roles.index'));
+
+        $response->assertOk();
         $response->assertViewIs('backend.roles.index');
-        $response->assertViewHas('roles');
     }
 
-    public function test_index_roles_unauthorized()
+    /** @test */
+    public function non_admin_cannot_view_roles_index()
     {
-        $response = $this->actingAs($this->user)->get(route('backend.roles.index'));
-        $response->assertStatus(403);
+        $response = $this->actingAs($this->regularUser)
+            ->get(route('backend.roles.index'));
+
+        $response->assertForbidden();
     }
 
-    public function test_store_role()
+    /** @test */
+    public function admin_can_view_create_role_form()
     {
-        $data = [
-            'name' => 'editor',
-            'permissions' => ['access-admin-panel'],
-        ];
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('backend.roles.create'));
 
-        $response = $this->actingAs($this->admin)->post(route('backend.roles.store'), $data);
-        $response->assertRedirect(route('backend.roles.index'));
-        $response->assertSessionHas('success', __('messages.role_created'));
-
-        $this->assertDatabaseHas('roles', ['name' => 'editor']);
-        $this->assertDatabaseHas('role_has_permissions', [
-            'permission_id' => Permission::where('name', 'access-admin-panel')->first()->id,
-            'role_id' => Role::where('name', 'editor')->first()->id,
-        ]);
-    }
-
-    public function test_update_role()
-    {
-        $role = Role::create(['name' => 'editor']);
-        $data = [
-            'name' => 'senior_editor',
-            'permissions' => ['access-admin-panel'],
-        ];
-
-        $response = $this->actingAs($this->admin)->post(route('backend.roles.update', $role), $data);
-        $response->assertRedirect(route('backend.roles.index'));
-        $response->assertSessionHas('success', __('messages.role_updated'));
-
-        $this->assertDatabaseHas('roles', ['name' => 'senior_editor']);
-    }
-
-    public function test_destroy_role()
-    {
-        $role = Role::create(['name' => 'editor']);
-
-        $response = $this->actingAs($this->admin)->delete(route('backend.roles.destroy', $role));
-        $response->assertRedirect(route('backend.roles.index'));
-        $response->assertSessionHas('success', __('messages.role_deleted'));
-
-        $this->assertDatabaseMissing('roles', ['name' => 'editor']);
-    }
-
-    public function test_index_permissions_authorized()
-    {
-        $response = $this->actingAs($this->admin)->get(route('backend.permissions.index'));
-        $response->assertStatus(200);
-        $response->assertViewIs('backend.permissions.index');
+        $response->assertOk();
+        $response->assertViewIs('backend.roles.create');
         $response->assertViewHas('permissions');
     }
 
-    public function test_store_permission()
+    /** @test */
+    public function admin_can_store_new_role()
     {
-        $data = ['name' => 'new-permission'];
+        $data = [
+            'name' => 'new_role',
+            'permissions' => ['read-posts']
+        ];
 
-        $response = $this->actingAs($this->admin)->post(route('backend.permissions.store'), $data);
-        $response->assertRedirect(route('backend.permissions.index'));
-        $response->assertSessionHas('success', __('messages.permission_created'));
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('backend.roles.store'), $data);
 
-        $this->assertDatabaseHas('permissions', ['name' => 'new-permission']);
+        $response->assertRedirect(route('backend.roles.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('roles', ['name' => 'new_role']);
+        $this->assertTrue(Role::findByName('new_role')->hasPermissionTo('read-posts'));
     }
 
-    public function test_store_permission_fails_with_duplicate_name()
+    /** @test */
+    public function store_role_validation_works()
     {
-        $data = ['name' => 'edit-posts'];
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('backend.roles.store'), ['name' => '']);
 
-        $response = $this->actingAs($this->admin)
-            ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class, EnsureFrontendRequestsAreStateful::class])
-            ->from(route('backend.permissions.create'))
+        $response->assertSessionHasErrors(['name']);
+    }
+
+    /** @test */
+    public function admin_can_view_edit_role_form()
+    {
+        $role = Role::create(['name' => 'test_role']);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('backend.roles.edit', $role));
+
+        $response->assertOk();
+        $response->assertViewIs('backend.roles.edit');
+        $response->assertViewHas(['role', 'permissions', 'rolePermissions']);
+    }
+
+    /** @test */
+    public function admin_can_update_role()
+    {
+        $role = Role::create(['name' => 'old_name']);
+
+        $data = [
+            'name' => 'new_name',
+            'permissions' => ['read-posts']
+        ];
+
+        $response = $this->actingAs($this->adminUser)
+            ->put(route('backend.roles.update', $role), $data);
+
+        $response->assertRedirect(route('backend.roles.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('roles', ['name' => 'new_name']);
+        $this->assertTrue($role->fresh()->hasPermissionTo('read-posts'));
+    }
+
+    /** @test */
+    public function update_role_validation_works()
+    {
+        $role = Role::create(['name' => 'test_role']);
+
+        $response = $this->actingAs($this->adminUser)
+            ->put(route('backend.roles.update', $role), ['name' => '']);
+
+        $response->assertSessionHasErrors(['name']);
+    }
+
+    /** @test */
+    public function admin_can_delete_unused_role()
+    {
+        $role = Role::create(['name' => 'to_delete']);
+
+        $response = $this->actingAs($this->adminUser)
+            ->delete(route('backend.roles.destroy', $role));
+
+        $response->assertRedirect(route('backend.roles.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('roles', ['name' => 'to_delete']);
+    }
+
+    /** @test */
+    public function cannot_delete_role_in_use()
+    {
+        $role = Role::create(['name' => 'in_use']);
+        $this->adminUser->assignRole('in_use');
+
+        $response = $this->actingAs($this->adminUser)
+            ->delete(route('backend.roles.destroy', $role));
+
+        $response->assertRedirect(route('backend.roles.index'));
+        $response->assertSessionHas('error');
+
+        $this->assertDatabaseHas('roles', ['name' => 'in_use']);
+    }
+
+    /** @test */
+    public function admin_can_view_permissions_index()
+    {
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('backend.permissions.index'));
+
+        $response->assertOk();
+        $response->assertViewIs('backend.permissions.index');
+    }
+
+    /** @test */
+    public function admin_can_create_permission()
+    {
+        $data = ['name' => 'new_permission'];
+
+        $response = $this->actingAs($this->adminUser)
             ->post(route('backend.permissions.store'), $data);
 
-        $response->assertStatus(302);
-        $response->assertRedirect(route('backend.permissions.create'));
-
-        // Check errors after redirect
-        $redirectResponse = $this->followRedirects($response);
-        $redirectResponse->assertViewHas('errors');
-        $redirectResponse->assertSessionHasErrorsIn('default', ['name']);
-
-        // Debug: Log session contents
-        Log::debug('Session contents in test_store_permission_fails_with_duplicate_name', [
-            'session' => $response->hasSession() ? $response->session()->all() : 'No session',
-            'status' => $response->getStatusCode(),
-            'location' => $response->headers->get('Location'),
-            'input' => $response->session()->get('_old_input', []),
-            'errors' => $response->session()->get('errors', 'No errors'),
-            'flash' => $response->session()->get('_flash', []),
-            'redirect_session' => $redirectResponse->hasSession() ? $redirectResponse->session()->all() : 'No redirect session',
-        ]);
-
-        // Temporary workaround: Check validation failure indirectly
-        $this->assertDatabaseMissing('permissions', ['name' => 'edit-posts']);
-    }
-
-    public function test_update_permission()
-    {
-        $permission = Permission::create(['name' => 'edit-posts']);
-        $data = ['name' => 'update-posts'];
-
-        $response = $this->actingAs($this->admin)->post(route('backend.permissions.update', $permission), $data);
         $response->assertRedirect(route('backend.permissions.index'));
-        $response->assertSessionHas('success', __('messages.permission_updated'));
+        $response->assertSessionHas('success');
 
-        $this->assertDatabaseHas('permissions', ['name' => 'update-posts']);
+        $this->assertDatabaseHas('permissions', ['name' => 'new_permission']);
     }
 
-    public function test_destroy_permission()
+    /** @test */
+    public function cannot_create_duplicate_permission()
     {
-        $permission = Permission::create(['name' => 'edit-posts']);
+        Permission::create(['name' => 'existing_permission']);
 
-        $response = $this->actingAs($this->admin)->delete(route('backend.permissions.destroy', $permission));
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('backend.permissions.store'), ['name' => 'existing_permission']);
+
+        $response->assertSessionHasErrors(['name']);
+    }
+
+    /** @test */
+    public function admin_can_update_permission()
+    {
+        $permission = Permission::create(['name' => 'old_name']);
+
+        $response = $this->actingAs($this->adminUser)
+            ->put(route('backend.permissions.update', $permission), ['name' => 'new_name']);
+
         $response->assertRedirect(route('backend.permissions.index'));
-        $response->assertSessionHas('success', __('messages.permission_deleted'));
+        $response->assertSessionHas('success');
 
-        $this->assertDatabaseMissing('permissions', ['name' => 'edit-posts']);
+        $this->assertDatabaseHas('permissions', ['name' => 'new_name']);
     }
 
-    public function test_manage_user_roles_permissions()
+    /** @test */
+    public function cannot_update_permission_to_duplicate_name()
     {
-        $response = $this->actingAs($this->admin)->get(route('backend.roles.manage'));
-        $response->assertStatus(200);
+        Permission::create(['name' => 'permission1']);
+        $permission2 = Permission::create(['name' => 'permission2']);
+
+        $response = $this->actingAs($this->adminUser)
+            ->put(route('backend.permissions.update', $permission2), ['name' => 'permission1']);
+
+        $response->assertSessionHasErrors(['name']);
+    }
+
+    /** @test */
+    public function admin_can_delete_unused_permission()
+    {
+        $permission = Permission::create(['name' => 'to_delete']);
+
+        $response = $this->actingAs($this->adminUser)
+            ->delete(route('backend.permissions.destroy', $permission));
+
+        $response->assertRedirect(route('backend.permissions.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('permissions', ['name' => 'to_delete']);
+    }
+
+    /** @test */
+    public function cannot_delete_permission_in_use()
+    {
+        $permission = Permission::create(['name' => 'in_use']);
+        $this->adminUser->givePermissionTo('in_use');
+
+        $response = $this->actingAs($this->adminUser)
+            ->delete(route('backend.permissions.destroy', $permission));
+
+        $response->assertRedirect(route('backend.permissions.index'));
+        $response->assertSessionHas('error');
+
+        $this->assertDatabaseHas('permissions', ['name' => 'in_use']);
+    }
+
+    /** @test */
+    public function admin_can_manage_user_roles_and_permissions()
+    {
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('backend.roles.manage'));
+
+        $response->assertOk();
         $response->assertViewIs('backend.roles.manage');
         $response->assertViewHas(['users', 'roles', 'permissions']);
     }
 
-    public function test_update_user_roles_permissions()
+    /** @test */
+    public function admin_can_update_user_roles_and_permissions()
     {
-        $user = User::factory()->create();
         $data = [
-            'user_id' => $user->id,
+            'user_id' => $this->regularUser->id,
             'roles' => ['admin'],
-            'permissions' => ['access-admin-panel'],
+            'permissions' => ['manage-roles']
         ];
 
-        $response = $this->actingAs($this->admin)->post(route('backend.roles.update-user'), $data);
-        $response->assertRedirect(route('backend.roles.manage'));
-        $response->assertSessionHas('success', __('messages.user_roles_permissions_updated'));
+        $response = $this->actingAs($this->adminUser)
+            ->put(route('backend.roles.update-user'), $data);
 
-        $this->assertTrue($user->fresh()->hasRole('admin'));
-        $this->assertTrue($user->fresh()->hasPermissionTo('access-admin-panel'));
+        $response->assertRedirect(route('backend.roles.manage'));
+        $response->assertSessionHas('success');
+
+        $this->assertTrue($this->regularUser->fresh()->hasRole('admin'));
+        $this->assertTrue($this->regularUser->fresh()->hasPermissionTo('manage-roles'));
     }
 
-    public function test_get_user_roles_permissions()
+    /** @test */
+    public function can_get_user_roles_and_permissions_via_ajax()
     {
-        $user = User::factory()->create();
-        $user->assignRole('admin');
-        $user->givePermissionTo('access-admin-panel');
+        $this->regularUser->givePermissionTo('read-posts');
 
-        $response = $this->actingAs($this->admin)->get(route('backend.roles.get-user', $user));
-        $response->assertStatus(200);
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('backend.roles.get-user', $this->regularUser));
+
+        $response->assertOk();
         $response->assertJson([
-            'roles' => ['admin'],
-            'permissions' => ['access-admin-panel'],
+            'roles' => ['editor'],
+            'permissions' => ['read-posts']
         ]);
     }
 }

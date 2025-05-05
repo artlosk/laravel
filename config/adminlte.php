@@ -332,8 +332,30 @@ return [
             'text' => 'User Roles & Permissions',
             'route' => 'backend.roles.manage',
             'icon' => 'fas fa-users-cog',
+//            'label' => App\Models\User::,
+//            'label_color' => 'success',
             'active' => ['backend.roles.manage', 'backend.roles.update-user', 'backend.roles.get-user'],
             'can' => ['manage-roles', 'manage-permissions'],
+        ],
+        [
+            'text' => 'User Management',
+            'icon' => 'fas fa-users',
+            'active' => ['admin/users*'], // Активность для всех роутов users
+            'can' => 'manage-users', // Проверка разрешения
+            'submenu' => [
+                [
+                    'text' => 'List Users',
+                    'url' => '/admin/users',
+                    'icon' => 'fas fa-list',
+                    'active' => ['admin/users', 'admin/users/create'], // Активность для index/create
+                ],
+                [
+                    'text' => 'Create User',
+                    'url' => '/admin/users/create',
+                    'icon' => 'fas fa-plus',
+                    'active' => ['admin/users/create'],
+                ],
+            ],
         ],
         'ACCOUNT SETTINGS',
         [

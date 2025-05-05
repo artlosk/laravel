@@ -8,17 +8,22 @@ use App\Http\Requests\UpdateRoleRequest;
 use App\Http\Requests\StorePermissionRequest;
 use App\Http\Requests\UpdatePermissionRequest;
 use App\Http\Requests\UpdateUserRolesPermissionsRequest;
+use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 
 /**
  * Controller for managing roles and permissions in the admin panel.
  */
 class RolePermissionController extends Controller
 {
+    private const PAGINATION_LIMIT = 10;
+
     public function __construct()
     {
         $this->middleware(['auth']);
@@ -29,10 +34,10 @@ class RolePermissionController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function indexRoles()
+    public function indexRoles(): View
     {
         $this->authorize('manage-roles');
-        $roles = Role::paginate(10);
+        $roles = Role::paginate(self::PAGINATION_LIMIT);
         return view('backend.roles.index', compact('roles'));
     }
 
@@ -41,7 +46,7 @@ class RolePermissionController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function createRole()
+    public function createRole(): View
     {
         $this->authorize('manage-roles');
         $permissions = Permission::all();
@@ -57,12 +62,15 @@ class RolePermissionController extends Controller
     public function storeRole(StoreRoleRequest $request): RedirectResponse
     {
         try {
-            $role = Role::create(['name' => $request->input('name')]);
-            if ($request->input('permissions')) {
-                $role->syncPermissions($request->input('permissions'));
-            }
+            DB::transaction(function () use ($request) {
+                $role = Role::create(['name' => $request->input('name')]);
+                if ($request->input('permissions')) {
+                    $role->syncPermissions($request->input('permissions'));
+                }
+            });
             return redirect()->route('backend.roles.index')->with('success', __('messages.role_created'));
         } catch (\Exception $e) {
+            Log::error('Failed to create role: ' . $e->getMessage());
             return redirect()->route('backend.roles.create')->with('error', __('messages.role_creation_failed'));
         }
     }
@@ -73,7 +81,7 @@ class RolePermissionController extends Controller
      * @param Role $role
      * @return \Illuminate\View\View
      */
-    public function editRole(Role $role)
+    public function editRole(Role $role): View
     {
         $this->authorize('manage-roles');
         $permissions = Permission::all();
@@ -91,10 +99,13 @@ class RolePermissionController extends Controller
     public function updateRole(UpdateRoleRequest $request, Role $role): RedirectResponse
     {
         try {
-            $role->update(['name' => $request->input('name')]);
-            $role->syncPermissions($request->input('permissions', []));
+            DB::transaction(function () use ($request, $role) {
+                $role->update(['name' => $request->input('name')]);
+                $role->syncPermissions($request->input('permissions', []));
+            });
             return redirect()->route('backend.roles.index')->with('success', __('messages.role_updated'));
         } catch (\Exception $e) {
+            Log::error('Failed to update role: ' . $e->getMessage());
             return redirect()->route('backend.roles.edit', $role)->with('error', __('messages.role_update_failed'));
         }
     }
@@ -115,6 +126,7 @@ class RolePermissionController extends Controller
             $role->delete();
             return redirect()->route('backend.roles.index')->with('success', __('messages.role_deleted'));
         } catch (\Exception $e) {
+            Log::error('Failed to delete role: ' . $e->getMessage());
             return redirect()->route('backend.roles.index')->with('error', __('messages.role_deletion_failed'));
         }
     }
@@ -124,10 +136,10 @@ class RolePermissionController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function indexPermissions()
+    public function indexPermissions(): View
     {
         $this->authorize('manage-permissions');
-        $permissions = Permission::paginate(10);
+        $permissions = Permission::paginate(self::PAGINATION_LIMIT);
         return view('backend.permissions.index', compact('permissions'));
     }
 
@@ -136,7 +148,7 @@ class RolePermissionController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function createPermission()
+    public function createPermission(): View
     {
         $this->authorize('manage-permissions');
         return view('backend.permissions.create');
@@ -154,8 +166,7 @@ class RolePermissionController extends Controller
             Permission::create(['name' => $request->input('name')]);
             return redirect()->route('backend.permissions.index')->with('success', __('messages.permission_created'));
         } catch (\Exception $e) {
-            // Log the exception for debugging
-            \Log::error('Failed to create permission: ' . $e->getMessage());
+            Log::error('Failed to create permission: ' . $e->getMessage());
             return redirect()->route('backend.permissions.create')->with('error', __('messages.permission_creation_failed'));
         }
     }
@@ -166,7 +177,7 @@ class RolePermissionController extends Controller
      * @param Permission $permission
      * @return \Illuminate\View\View
      */
-    public function editPermission(Permission $permission)
+    public function editPermission(Permission $permission): View
     {
         $this->authorize('manage-permissions');
         return view('backend.permissions.edit', compact('permission'));
@@ -185,6 +196,7 @@ class RolePermissionController extends Controller
             $permission->update(['name' => $request->input('name')]);
             return redirect()->route('backend.permissions.index')->with('success', __('messages.permission_updated'));
         } catch (\Exception $e) {
+            Log::error('Failed to update permission: ' . $e->getMessage());
             return redirect()->route('backend.permissions.edit', $permission)->with('error', __('messages.permission_update_failed'));
         }
     }
@@ -205,6 +217,7 @@ class RolePermissionController extends Controller
             $permission->delete();
             return redirect()->route('backend.permissions.index')->with('success', __('messages.permission_deleted'));
         } catch (\Exception $e) {
+            Log::error('Failed to delete permission: ' . $e->getMessage());
             return redirect()->route('backend.permissions.index')->with('error', __('messages.permission_deletion_failed'));
         }
     }
@@ -214,11 +227,11 @@ class RolePermissionController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function manageUserRolesPermissions()
+    public function manageUserRolesPermissions(): View
     {
         $this->authorize('manage-roles');
         $this->authorize('manage-permissions');
-        $users = User::paginate(10);
+        $users = User::paginate(self::PAGINATION_LIMIT);
         $roles = Role::all();
         $permissions = Permission::all();
         return view('backend.roles.manage', compact('users', 'roles', 'permissions'));
@@ -234,10 +247,13 @@ class RolePermissionController extends Controller
     {
         try {
             $user = User::findOrFail($request->input('user_id'));
-            $user->syncRoles($request->input('roles', []));
-            $user->syncPermissions($request->input('permissions', []));
+            DB::transaction(function () use ($request, $user) {
+                $user->syncRoles($request->input('roles', []));
+                $user->syncPermissions($request->input('permissions', []));
+            });
             return redirect()->route('backend.roles.manage')->with('success', __('messages.user_roles_permissions_updated'));
         } catch (\Exception $e) {
+            Log::error('Failed to update user roles/permissions: ' . $e->getMessage());
             return redirect()->route('backend.roles.manage')->with('error', __('messages.user_roles_permissions_update_failed'));
         }
     }
@@ -248,13 +264,13 @@ class RolePermissionController extends Controller
      * @param User $user
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getUserRolesPermissions(User $user)
+    public function getUserRolesPermissions(User $user): JsonResponse
     {
         $this->authorize('manage-roles');
         $this->authorize('manage-permissions');
         return response()->json([
-            'roles' => $user->roles->pluck('name'),
-            'permissions' => $user->permissions->pluck('name'),
+            'roles' => $user->roles->pluck('name')->toArray(),
+            'permissions' => $user->permissions->pluck('name')->toArray(),
         ]);
     }
 }

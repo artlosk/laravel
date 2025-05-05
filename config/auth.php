@@ -40,6 +40,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'sanctum' => [ // Добавили новый guard для API
+            'driver' => 'sanctum',
+            'provider' => 'users',
+        ],
     ],
 
     /*

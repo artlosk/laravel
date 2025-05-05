@@ -30,4 +30,14 @@ class UpdateRoleRequest extends FormRequest
             'name.unique' => __('validation.role_name_unique'),
         ];
     }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
+    {
+        throw (new \Illuminate\Validation\ValidationException($validator))
+            ->errorBag($this->errorBag)
+            ->redirectTo(route('backend.roles.edit', $this->role));
+    }
 }

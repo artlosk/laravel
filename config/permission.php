@@ -96,6 +96,8 @@ return [
         'team_foreign_key' => 'team_id',
     ],
 
+    'guard_name' => 'web',
+
     /*
      * When set to true, the method for checking permissions will be registered on the gate.
      * Set this to false if you want to implement custom logic for checking permissions.

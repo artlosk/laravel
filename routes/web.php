@@ -3,6 +3,7 @@
 use App\Http\Controllers\backend\AdminController;
 use App\Http\Controllers\backend\PostController as BackendPostController;
 use App\Http\Controllers\backend\RolePermissionController;
+use App\Http\Controllers\backend\UserController;
 use App\Http\Controllers\frontend\DashboardController;
 use App\Http\Controllers\frontend\PostController as FrontendPostController;
 use App\Http\Controllers\frontend\ProfileController as FrontendProfileController;
@@ -59,5 +60,14 @@ Route::middleware(['auth', 'permission:access-admin-panel'])->prefix('admin')->g
         Route::get('/users/roles-permissions', [RolePermissionController::class, 'manageUserRolesPermissions'])->name('backend.roles.manage');
         Route::post('/users/roles-permissions', [RolePermissionController::class, 'updateUserRolesPermissions'])->name('backend.roles.update-user');
         Route::get('/users/{user}/roles-permissions', [RolePermissionController::class, 'getUserRolesPermissions'])->name('backend.roles.get-user');
+    });
+
+    Route::middleware(['auth', 'permission:manage-users'])->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('backend.users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('backend.users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('backend.users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('backend.users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('backend.users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('backend.users.destroy');
     });
 });

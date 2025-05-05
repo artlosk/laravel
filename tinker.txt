@@ -3,6 +3,7 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
 // Создание разрешений
+Permission::firstOrCreate(['name' => 'manage-users']);
 Permission::firstOrCreate(['name' => 'manage-roles']);
 Permission::firstOrCreate(['name' => 'manage-permissions']);
 Permission::firstOrCreate(['name' => 'access-admin-panel']);
@@ -14,6 +15,7 @@ Permission::firstOrCreate(['name' => 'delete-posts']);
 // Создание роли admin
 $adminRole = Role::firstOrCreate(['name' => 'admin']);
 $adminRole->syncPermissions([
+    'manage-users',
     'manage-roles',
     'manage-permissions',
     'access-admin-panel',

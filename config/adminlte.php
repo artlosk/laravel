@@ -297,171 +297,179 @@ return [
     | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Menu-Configuration
     |
     */
-
-    'menu' => [
-        'MAIN NAVIGATION',
-        [
-            'text' => 'Dashboard',
-            'route' => 'backend.dashboard',
-            'icon' => 'fas fa-tachometer-alt',
-            'active' => ['backend.dashboard'],
-            'can' => 'access-admin-panel',
-        ],
-        [
-            'text' => 'Posts',
-            'route' => 'backend.posts.index',
-            'icon' => 'fas fa-file-alt',
-            'active' => ['backend.posts.*'],
-            'can' => 'read-posts',
-        ],
-        [
-            'text' => 'Roles',
-            'route' => 'backend.roles.index',
-            'icon' => 'fas fa-user-shield',
-            'active' => ['backend.roles.*'],
-            'can' => 'manage-roles',
-        ],
-        [
-            'text' => 'Permissions',
-            'route' => 'backend.permissions.index',
-            'icon' => 'fas fa-key',
-            'active' => ['backend.permissions.*'],
-            'can' => 'manage-permissions',
-        ],
-        [
-            'text' => 'User Roles & Permissions',
-            'route' => 'backend.roles.manage',
-            'icon' => 'fas fa-users-cog',
-//            'label' => App\Models\User::,
+    'menu' => [],
+//    'menu' => [
+//        'MAIN NAVIGATION',
+//        [
+//            'text' => 'Dashboard',
+//            'route' => 'backend.dashboard',
+//            'icon' => 'fas fa-tachometer-alt',
+//            'active' => ['backend.dashboard'],
+//            'can' => 'access-admin-panel',
+//            'order' => 10,
+//        ],
+//        [
+//            'text' => 'Posts',
+//            'route' => 'backend.posts.index',
+//            'icon' => 'fas fa-file-alt',
+//            'active' => ['backend.posts.*'],
+//            'can' => 'read-posts',
+//            'order' => 20,
+//        ],
+//        [
+//            'text' => 'Roles',
+//            'route' => 'backend.roles.index',
+//            'icon' => 'fas fa-user-shield',
+//            'active' => ['backend.roles.*'],
+//            'can' => 'manage-roles',
+//            'order' => 30,
+//        ],
+//        [
+//            'text' => 'Permissions',
+//            'route' => 'backend.permissions.index',
+//            'icon' => 'fas fa-key',
+//            'active' => ['backend.permissions.*'],
+//            'can' => 'manage-permissions',
+//            'order' => 40,
+//        ],
+//        [
+//            'text' => 'User Roles & Permissions',
+//            'route' => 'backend.roles.manage',
+//            'icon' => 'fas fa-users-cog',
+////            'label' => function() {
+////                return App\Models\User::count();
+////            },
 //            'label_color' => 'success',
-            'active' => ['backend.roles.manage', 'backend.roles.update-user', 'backend.roles.get-user'],
-            'can' => ['manage-roles', 'manage-permissions'],
-        ],
-        [
-            'text' => 'User Management',
-            'icon' => 'fas fa-users',
-            'active' => ['admin/users*'], // Активность для всех роутов users
-            'can' => 'manage-users', // Проверка разрешения
-            'submenu' => [
-                [
-                    'text' => 'List Users',
-                    'url' => '/admin/users',
-                    'icon' => 'fas fa-list',
-                    'active' => ['admin/users', 'admin/users/create'], // Активность для index/create
-                ],
-                [
-                    'text' => 'Create User',
-                    'url' => '/admin/users/create',
-                    'icon' => 'fas fa-plus',
-                    'active' => ['admin/users/create'],
-                ],
-            ],
-        ],
-        'ACCOUNT SETTINGS',
-        [
-            'text' => 'Profile',
-            'route' => 'backend.profile',
-            'icon' => 'fas fa-fw fa-user',
-        ],
-        [
-            'text' => 'Change Password',
-            'route' => 'backend.password',
-            'icon' => 'fas fa-fw fa-lock',
-        ],
-        // Navbar items:
-        [
-            'type' => 'navbar-search',
-            'text' => 'search',
-            'topnav_right' => true,
-        ],
-        [
-            'type' => 'fullscreen-widget',
-            'topnav_right' => true,
-        ],
-
-        // Sidebar items:
-        [
-            'type' => 'sidebar-menu-search',
-            'text' => 'search',
-        ],
-        [
-            'text' => 'blog',
-            'url' => 'admin/blog',
-            'can' => 'manage-blog',
-        ],
-        [
-            'text' => 'pages',
-            'url' => 'admin/pages',
-            'icon' => 'far fa-fw fa-file',
-            'label' => 4,
-            'label_color' => 'success',
-        ],
-        ['header' => 'account_settings'],
-        [
-            'text' => 'profile',
-            'url' => 'admin/settings',
-            'icon' => 'fas fa-fw fa-user',
-        ],
-        [
-            'text' => 'change_password',
-            'url' => 'admin/settings',
-            'icon' => 'fas fa-fw fa-lock',
-        ],
-        [
-            'text' => 'multilevel',
-            'icon' => 'fas fa-fw fa-share',
-            'submenu' => [
-                [
-                    'text' => 'level_one',
-                    'url' => '#',
-                ],
-                [
-                    'text' => 'level_one',
-                    'url' => '#',
-                    'submenu' => [
-                        [
-                            'text' => 'level_two',
-                            'url' => '#',
-                        ],
-                        [
-                            'text' => 'level_two',
-                            'url' => '#',
-                            'submenu' => [
-                                [
-                                    'text' => 'level_three',
-                                    'url' => '#',
-                                ],
-                                [
-                                    'text' => 'level_three',
-                                    'url' => '#',
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-                [
-                    'text' => 'level_one',
-                    'url' => '#',
-                ],
-            ],
-        ],
-        ['header' => 'labels'],
-        [
-            'text' => 'important',
-            'icon_color' => 'red',
-            'url' => '#',
-        ],
-        [
-            'text' => 'warning',
-            'icon_color' => 'yellow',
-            'url' => '#',
-        ],
-        [
-            'text' => 'information',
-            'icon_color' => 'cyan',
-            'url' => '#',
-        ],
-    ],
+//            'active' => ['backend.roles.manage', 'backend.roles.update-user', 'backend.roles.get-user'],
+//            'can' => ['manage-roles', 'manage-permissions'],
+//            'order' => 50,
+//        ],
+//        [
+//            'text' => 'User Management',
+//            'icon' => 'fas fa-users',
+//            'active' => ['admin/users*'], // Активность для всех роутов users
+//            'can' => 'manage-users', // Проверка разрешения
+//            'submenu' => [
+//                [
+//                    'text' => 'List Users',
+//                    'url' => '/admin/users',
+//                    'icon' => 'fas fa-list',
+//                    'active' => ['admin/users', 'admin/users/create'], // Активность для index/create
+//                ],
+//                [
+//                    'text' => 'Create User',
+//                    'url' => '/admin/users/create',
+//                    'icon' => 'fas fa-plus',
+//                    'active' => ['admin/users/create'],
+//                ],
+//            ],
+//            'order' => 60,
+//        ],
+//        'ACCOUNT SETTINGS',
+//        [
+//            'text' => 'Profile',
+//            'route' => 'backend.profile',
+//            'icon' => 'fas fa-fw fa-user',
+//        ],
+//        [
+//            'text' => 'Change Password',
+//            'route' => 'backend.password',
+//            'icon' => 'fas fa-fw fa-lock',
+//        ],
+//        // Navbar items:
+//        [
+//            'type' => 'navbar-search',
+//            'text' => 'search',
+//            'topnav_right' => true,
+//        ],
+//        [
+//            'type' => 'fullscreen-widget',
+//            'topnav_right' => true,
+//        ],
+//
+//        // Sidebar items:
+//        [
+//            'type' => 'sidebar-menu-search',
+//            'text' => 'search',
+//        ],
+//        [
+//            'text' => 'blog',
+//            'url' => 'admin/blog',
+//            'can' => 'manage-blog',
+//        ],
+//        [
+//            'text' => 'pages',
+//            'url' => 'admin/pages',
+//            'icon' => 'far fa-fw fa-file',
+//            'label' => 4,
+//            'label_color' => 'success',
+//        ],
+//        ['header' => 'account_settings'],
+//        [
+//            'text' => 'profile',
+//            'url' => 'admin/settings',
+//            'icon' => 'fas fa-fw fa-user',
+//        ],
+//        [
+//            'text' => 'change_password',
+//            'url' => 'admin/settings',
+//            'icon' => 'fas fa-fw fa-lock',
+//        ],
+//        [
+//            'text' => 'multilevel',
+//            'icon' => 'fas fa-fw fa-share',
+//            'submenu' => [
+//                [
+//                    'text' => 'level_one',
+//                    'url' => '#',
+//                ],
+//                [
+//                    'text' => 'level_one',
+//                    'url' => '#',
+//                    'submenu' => [
+//                        [
+//                            'text' => 'level_two',
+//                            'url' => '#',
+//                        ],
+//                        [
+//                            'text' => 'level_two',
+//                            'url' => '#',
+//                            'submenu' => [
+//                                [
+//                                    'text' => 'level_three',
+//                                    'url' => '#',
+//                                ],
+//                                [
+//                                    'text' => 'level_three',
+//                                    'url' => '#',
+//                                ],
+//                            ],
+//                        ],
+//                    ],
+//                ],
+//                [
+//                    'text' => 'level_one',
+//                    'url' => '#',
+//                ],
+//            ],
+//        ],
+//        ['header' => 'labels'],
+//        [
+//            'text' => 'important',
+//            'icon_color' => 'red',
+//            'url' => '#',
+//        ],
+//        [
+//            'text' => 'warning',
+//            'icon_color' => 'yellow',
+//            'url' => '#',
+//        ],
+//        [
+//            'text' => 'information',
+//            'icon_color' => 'cyan',
+//            'url' => '#',
+//        ],
+//    ],
 
     /*
     |--------------------------------------------------------------------------

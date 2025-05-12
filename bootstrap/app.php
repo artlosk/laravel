@@ -52,7 +52,6 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withProviders([
         \App\Providers\RateLimitServiceProvider::class,
-        // другие провайдеры...
     ])
     ->withExceptions(function (Exceptions $exceptions) {
         //

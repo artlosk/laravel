@@ -12,15 +12,3 @@
         @yield('admin_content')
     </div>
 @endsection
-
-@section('css')
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
-    <style>
-        .nav-icon.fa-user-shield { color: #17a2b8; }
-        .nav-icon.fa-key { color: #28a745; }
-    </style>
-@endsection
-
-@section('js')
-    <script src="{{ asset('js/app.js') }}"></script>
-@endsection

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 
 class AdminMenuServiceProvider extends ServiceProvider
@@ -17,7 +18,7 @@ class AdminMenuServiceProvider extends ServiceProvider
     public function boot()
     {
         // Логирование для отладки
-        \Log::info('AdminMenuServiceProvider booted');
+        Log::info('AdminMenuServiceProvider booted');
     }
 
     protected function buildSidebarMenu()

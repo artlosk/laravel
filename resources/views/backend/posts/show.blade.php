@@ -13,6 +13,23 @@
             <p><strong>Author:</strong> {{ $post->user->name }}</p>
             <p><strong>Content:</strong></p>
             <p>{{ $post->content }}</p>
+            <!-- Вывод всех изображений -->
+            @if ($post->getMedia('images')->isNotEmpty())
+                <div>
+                    <h3>Изображения:</h3>
+                    <div class="row">
+                        @foreach ($post->getMedia('images') as $media)
+                            <div class="col-md-3">
+                                <a href="{{ $media->getUrl() }}" target="_blank">
+                                    <img src="{{ $media->getUrl() }}" alt="Image" class="img-fluid" style="max-width: 300px;">
+                                </a>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @else
+                <p>Изображения не загружены.</p>
+            @endif
             <p><strong>Created:</strong> {{ $post->created_at->format('d M Y H:i') }}</p>
             <p><strong>Updated:</strong> {{ $post->updated_at->format('d M Y H:i') }}</p>
             <div class="mt-3">

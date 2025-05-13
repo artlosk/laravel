@@ -10,6 +10,8 @@ use App\Http\Controllers\frontend\ProfileController as FrontendProfileController
 use App\Http\Controllers\backend\ProfileController as BackendProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+use App\Models\TempUpload;
 
 Route::get('/', function () {
     return view('frontend.welcome');
@@ -70,4 +72,11 @@ Route::middleware(['auth', 'permission:access-admin-panel'])->prefix('admin')->g
         Route::put('/users/{user}', [UserController::class, 'update'])->name('backend.users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('backend.users.destroy');
     });
+
+    // Страница с Filepond
+    Route::view('/upload', 'backend.upload');
+
+    // Обработка загрузки медиа
+    Route::post('/upload-media', [BackendPostController::class, 'uploadMedia'])->name('admin.upload-media');
+    Route::delete('posts/{post}/remove-media/{media}', [BackendPostController::class, 'removeMedia'])->name('backend.posts.remove-media');
 });

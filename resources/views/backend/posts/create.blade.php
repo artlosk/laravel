@@ -30,9 +30,54 @@
                     <label for="content">Content</label>
                     <textarea name="content" id="content" class="form-control" rows="5" required>{{ old('content') }}</textarea>
                 </div>
+                <!-- Filepond для загрузки изображения -->
+                <div class="form-group">
+                    <label for="filepond">Изображение</label>
+                    <input type="file" class="filepond" name="filepond[]" multiple>
+                </div>
+                <div id="media_ids"></div>
                 <button type="submit" class="btn btn-primary">Create Post</button>
                 <a href="{{ route('backend.posts.index') }}" class="btn btn-secondary">Cancel</a>
             </form>
         </div>
     </div>
+@endsection
+@section('css')
+    <!-- Подключаем Filepond CSS -->
+    <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
+@endsection
+@section('js')
+    <!-- Подключение Filepond JS -->
+    <script src="https://cdn.jsdelivr.net/npm/filepond/dist/filepond.min.js"></script>
+
+    <script>
+        FilePond.registerPlugin();
+
+        FilePond.setOptions({
+            allowMultiple: true,
+            server: {
+                process: {
+                    url: '{{ route("admin.upload-media") }}',
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    },
+                    onload: (res) => {
+                        const { id } = JSON.parse(res);
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'media_ids[]';
+                        input.value = id;
+                        document.querySelector('form').appendChild(input);
+                        return id;
+                    },
+                    onerror: (res) => {
+                        console.error('Ошибка загрузки', res);
+                    },
+                },
+            }
+        });
+
+        FilePond.create(document.querySelector('input.filepond'));
+    </script>
 @endsection

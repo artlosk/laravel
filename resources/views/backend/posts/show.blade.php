@@ -14,21 +14,18 @@
             <p><strong>Content:</strong></p>
             <p>{{ $post->content }}</p>
             <!-- Вывод всех изображений -->
-            @if ($post->getMedia('images')->isNotEmpty())
-                <div>
-                    <h3>Изображения:</h3>
-                    <div class="row">
-                        @foreach ($post->getMedia('images') as $media)
-                            <div class="col-md-3">
-                                <a href="{{ $media->getUrl() }}" target="_blank">
-                                    <img src="{{ $media->getUrl() }}" alt="Image" class="img-fluid" style="max-width: 300px;">
-                                </a>
-                            </div>
-                        @endforeach
-                    </div>
+            @if($post->relatedMedia->count() > 0) {{-- ИЗМЕНЕНО: используем связь relatedMedia --}}
+            <h5>Изображения:</h5>
+            <div class="row">
+                @foreach($post->relatedMedia as $media) {{-- ИЗМЕНЕНО: используем связь relatedMedia --}}
+                <div class="col-md-4 mb-4">
+                    {{-- Используем миниатюру, если она есть, иначе оригинальный URL --}}
+                    <img src="{{ $media->hasGeneratedConversion('thumb') ? $media->getUrl('thumb') : $media->getUrl() }}" class="img-fluid rounded" alt="{{ $media->name }}">
+                    {{-- Опционально: ссылка на оригинальное изображение --}}
+                    {{-- <a href="{{ $media->getUrl() }}" target="_blank">Оригинал</a> --}}
                 </div>
-            @else
-                <p>Изображения не загружены.</p>
+                @endforeach
+            </div>
             @endif
             <p><strong>Created:</strong> {{ $post->created_at->format('d M Y H:i') }}</p>
             <p><strong>Updated:</strong> {{ $post->updated_at->format('d M Y H:i') }}</p>

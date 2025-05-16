@@ -9,7 +9,6 @@ class AdminMenuServiceProvider extends ServiceProvider
 {
     public function register()
     {
-        // Регистрируем синглтон для меню
         $this->app->singleton('adminlte.menu', function () {
             return $this->buildSidebarMenu();
         });
@@ -17,13 +16,11 @@ class AdminMenuServiceProvider extends ServiceProvider
 
     public function boot()
     {
-        // Логирование для отладки
         Log::info('AdminMenuServiceProvider booted');
     }
 
     protected function buildSidebarMenu()
     {
-        // Возвращаем меню, адаптированное из config/adminlte.php
         return [
             // Заголовок: MAIN NAVIGATION
             'MAIN NAVIGATION',

@@ -11,7 +11,6 @@ use App\Http\Controllers\backend\ProfileController as BackendProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
-use App\Models\TempUpload;
 
 Route::get('/', function () {
     return view('frontend.welcome');
@@ -42,7 +41,7 @@ Route::middleware(['auth', 'permission:access-admin-panel'])->prefix('admin')->g
         Route::match(['get', 'post'], '/posts/create', [BackendPostController::class, 'create'])->name('backend.posts.create');
         Route::match(['get', 'put'], '/posts/{post}/update', [BackendPostController::class, 'update'])->name('backend.posts.update');
         Route::get('/posts/{post}', [BackendPostController::class, 'show'])->name('backend.posts.show');
-        Route::delete('/posts/{post}', [BackendPostController::class, 'destroy'])->name('backend.posts.delete');
+        Route::delete('/posts/{post}', [BackendPostController::class, 'delete'])->name('backend.posts.delete');
     });
     Route::middleware(['auth', 'permission:manage-roles|manage-permissions'])->group(function () {
         Route::get('/roles', [RolePermissionController::class, 'indexRoles'])->name('backend.roles.index');
@@ -78,5 +77,19 @@ Route::middleware(['auth', 'permission:access-admin-panel'])->prefix('admin')->g
 
     // Обработка загрузки медиа
     Route::post('/upload-media', [BackendPostController::class, 'uploadMedia'])->name('admin.upload-media');
-    Route::delete('posts/{post}/remove-media/{media}', [BackendPostController::class, 'removeMedia'])->name('backend.posts.remove-media');
+    Route::delete('/posts/{post}/remove-media/{media}', [BackendPostController::class, 'removeMedia'])->name('backend.posts.removeMedia');
+
+    Route::post('/upload-image', [BackendPostController::class, 'uploadImage'])->name('upload.image');
+    Route::get('/get-gallery-images', [BackendPostController::class, 'getGalleryImages'])->name('gallery.images');
+    Route::post('/posts/{post}/attach-media/{mediaId}', [BackendPostController::class, 'attachMediaToPost'])->name('post.attach.media');
+
+
+// Маршруты для управления медиа (галереи)
+    Route::get('media', [App\Http\Controllers\backend\MediaController::class, 'index'])->name('backend.media.index');
+    Route::get('media/get-by-ids', [App\Http\Controllers\backend\MediaController::class, 'getByIds'])->name('backend.media.getByIds');
+    Route::delete('media/{media}', [App\Http\Controllers\backend\MediaController::class, 'deleteMedia'])->name('backend.media.delete');
+
+    // Маршруты для FilePond
+    Route::post('filepond/upload', [App\Http\Controllers\backend\MediaController::class, 'uploadFilepond'])->name('backend.filepond.upload');
+    Route::delete('filepond/delete', [App\Http\Controllers\backend\MediaController::class, 'deleteFilepond'])->name('backend.filepond.delete');
 });

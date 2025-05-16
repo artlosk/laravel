@@ -110,6 +110,7 @@
 
             @default
                 <script src="{{ asset('vendor/jquery/jquery.min.js') }}"></script>
+                <?php /*@vite(['resources/js/app.js'])*/ ?>
                 <script src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
                 <script src="{{ asset('vendor/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}"></script>
                 <script src="{{ asset('vendor/adminlte/dist/js/adminlte.min.js') }}"></script>
@@ -130,7 +131,6 @@
 
     {{-- Custom Scripts --}}
     @yield('adminlte_js')
-
 </body>
 
 </html>

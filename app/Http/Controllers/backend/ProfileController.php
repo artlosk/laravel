@@ -15,13 +15,11 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         if ($request->isMethod('post')) {
-            // Валидация данных
             $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             ]);
 
-            // Обновление данных пользователя
             $user->update([
                 'name' => $request->get('name'),
                 'email' => $request->get('email'),
@@ -30,7 +28,6 @@ class ProfileController extends Controller
             return redirect()->route('backend.profile')->with('success', 'Profile updated successfully.');
         }
 
-        // Показ формы редактирования
         return view('backend.profile.update', compact('user'));
     }
 

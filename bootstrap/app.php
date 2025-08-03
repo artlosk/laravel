@@ -54,5 +54,4 @@ return Application::configure(basePath: dirname(__DIR__))
         \App\Providers\RateLimitServiceProvider::class,
     ])
     ->withExceptions(function (Exceptions $exceptions) {
-        //
     })->create();

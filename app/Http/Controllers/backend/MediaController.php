@@ -4,7 +4,6 @@ namespace App\Http\Controllers\backend;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Illuminate\Support\Str;
@@ -46,29 +45,30 @@ class MediaController extends Controller
     public function uploadFilepond(Request $request)
     {
         try {
-            Log::info('Upload request: ', $request->all());
-
-            $request->validate([
-                'filepond.*' => 'required|file|max:10240|mimes:jpg,jpeg,png',
-            ]);
-
-            $files = $request->file('filepond');
+            $files = $request->file('filepond') ?? $request->file('media.filepond');
+            
             if (empty($files)) {
-                Log::error('No files uploaded');
                 return response()->json(['error' => 'No files uploaded'], 422);
+            }
+
+            $validationRules = [];
+            if ($request->hasFile('filepond')) {
+                $validationRules['filepond.*'] = 'required|file|max:10240|mimes:jpg,jpeg,png';
+            } elseif ($request->hasFile('media.filepond')) {
+                $validationRules['media.filepond.*'] = 'required|file|max:10240|mimes:jpg,jpeg,png';
+            }
+            
+            if (!empty($validationRules)) {
+                $request->validate($validationRules);
             }
 
             $file = $files[0];
             $path = $file->store('filepond-tmp', 'public');
 
-            Log::info('File stored: ', ['path' => $path]);
-
             return $path;
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation error: ', $e->errors());
             return response()->json(['error' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('Upload error: ', [$e->getMessage()]);
             return response()->json(['error' => 'Failed to upload file'], 500);
         }
     }
@@ -76,31 +76,23 @@ class MediaController extends Controller
     public function deleteFilepond(Request $request)
     {
         $path = $request->getContent();
-        Log::info('Received deleteFilepond request for path: ' . $path);
 
         try {
             if (Storage::disk('public')->exists($path)) {
                 Storage::disk('public')->delete($path);
-                Log::info('Deleted temporary file: ' . $path);
-            } else {
-                Log::warning('Attempted to delete non-existent temporary file: ' . $path);
             }
             return response('', 200);
         } catch (\Exception $e) {
-            Log::error('FilePond Delete Error: ' . $e->getMessage());
             return Response::json(['error' => 'Ошибка при удалении временного файла: ' . $e->getMessage()], 500);
         }
     }
 
     public function deleteMedia(Media $media)
     {
-        Log::info('Attempting to delete media item completely.', ['media_id' => $media->id, 'file_name' => $media->file_name]);
         try {
             $media->delete();
-            Log::info('Media item deleted successfully.', ['media_id' => $media->id]);
             return Response::json(['message' => 'Медиафайл успешно удален.'], 200);
         } catch (\Exception $e) {
-            Log::error('Error deleting media item.', ['media_id' => $media->id, 'error' => $e->getMessage()]);
             return Response::json(['error' => 'Ошибка при удалении медиафайла: ' . $e->getMessage()], 500);
         }
     }

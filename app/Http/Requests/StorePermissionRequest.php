@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class StorePermissionRequest extends FormRequest
@@ -49,10 +48,6 @@ class StorePermissionRequest extends FormRequest
      */
     protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     {
-        Log::debug('Validation failed in StorePermissionRequest', [
-            'errors' => $validator->errors()->toArray(),
-            'input' => $this->all(),
-        ]);
         parent::failedValidation($validator);
     }
 }

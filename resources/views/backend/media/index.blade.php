@@ -1,3 +1,7 @@
+@php
+use Illuminate\Support\Str;
+@endphp
+
 <!-- resources/views/backend/media/index.blade.php -->
 @forelse($mediaItems as $media)
     <div class="col-md-2 mb-4 media-item" data-media-id="{{ $media->id }}">

@@ -13,16 +13,12 @@
             <p><strong>Author:</strong> {{ $post->user->name }}</p>
             <p><strong>Content:</strong></p>
             <p>{{ $post->content }}</p>
-            <!-- Вывод всех изображений -->
-            @if($post->relatedMedia->count() > 0) {{-- ИЗМЕНЕНО: используем связь relatedMedia --}}
+            @if($post->relatedMedia->count() > 0)
             <h5>Изображения:</h5>
             <div class="row">
-                @foreach($post->relatedMedia as $media) {{-- ИЗМЕНЕНО: используем связь relatedMedia --}}
+                @foreach($post->relatedMedia as $media)
                 <div class="col-md-4 mb-4">
-                    {{-- Используем миниатюру, если она есть, иначе оригинальный URL --}}
                     <img src="{{ $media->hasGeneratedConversion('thumb') ? $media->getUrl('thumb') : $media->getUrl() }}" class="img-fluid rounded" alt="{{ $media->name }}">
-                    {{-- Опционально: ссылка на оригинальное изображение --}}
-                    {{-- <a href="{{ $media->getUrl() }}" target="_blank">Оригинал</a> --}}
                 </div>
                 @endforeach
             </div>
@@ -31,7 +27,7 @@
             <p><strong>Updated:</strong> {{ $post->updated_at->format('d M Y H:i') }}</p>
             <div class="mt-3">
                 @if (Auth::user()->hasRole('admin') || Auth::user()->id === $post->user_id)
-                    <a href="{{ route('backend.posts.update', $post) }}" class="btn btn-warning">Edit</a>
+                    <a href="{{ route('backend.posts.edit', $post) }}" class="btn btn-warning">Edit</a>
                     <form action="{{ route('backend.posts.delete', $post) }}" method="POST" style="display:inline;">
                         @csrf
                         @method('DELETE')

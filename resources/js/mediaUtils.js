@@ -1,6 +1,5 @@
-// resources/js/mediaUtils.js
+import toastr from 'toastr';
 
-// Настройка Toastr
 toastr.options = {
     "closeButton": true,
     "progressBar": true,
@@ -8,25 +7,39 @@ toastr.options = {
     "timeOut": "5000"
 };
 
-// Инициализация FilePond
-export function initializeFilePond(inputSelector) {
-    try {
-        FilePond.registerPlugin(
-            FilePondPluginImagePreview,
-            FilePondPluginFileValidateType,
-            FilePondPluginFileValidateSize
-        );
+if (typeof window !== 'undefined' && window.FilePond) {
+    window.FilePond.registerPlugin(
+        window.FilePondPluginImagePreview,
+        window.FilePondPluginFileValidateType,
+        window.FilePondPluginFileValidateSize
+    );
+}
 
-        const inputElement = document.querySelector(inputSelector);
-        if (!inputElement) {
-            console.error('FilePond input element not found.');
+export function initializeFilePond(input) {
+    try {
+        const inputElement = typeof input === 'string'
+            ? document.querySelector(input)
+            : input;
+
+        if (!inputElement || inputElement.tagName !== 'INPUT' || inputElement.type !== 'file') {
             return null;
         }
 
-        const pond = FilePond.create(inputElement, {
+        const originalInputElement = inputElement;
+        
+        const widgetContainer = originalInputElement.closest('.media-gallery-widget');
+        
+        if (!widgetContainer) {
+            return null;
+        }
+
+        const widgetName = widgetContainer.dataset.name;
+        const previewSelector = `#${widgetName}-selectedMediaPreview`;
+
+        const pond = window.FilePond.create(inputElement, {
             allowMultiple: true,
             maxFiles: 5,
-            name: 'filepond[]',
+            name: 'media[filepond][]',
             server: {
                 process: window.appConfig.routes.filepondUpload,
                 revert: window.appConfig.routes.filepondDelete,
@@ -79,8 +92,14 @@ export function initializeFilePond(inputSelector) {
             if (error) return;
 
             const temporaryFileId = file.serverId;
+            
             if (temporaryFileId) {
-                const $previewContainer = $('#selectedMediaPreview');
+                const $previewContainer = $(previewSelector);
+                
+                if (!$previewContainer.length) {
+                    return;
+                }
+
                 const isImage = file.fileType && file.fileType.startsWith('image/');
                 const previewUrl = isImage ? URL.createObjectURL(file.file) : null;
 
@@ -104,55 +123,68 @@ export function initializeFilePond(inputSelector) {
         pond.on('processfilerevert', (file) => {
             const temporaryFileId = file.serverId;
             if (temporaryFileId) {
-                $(`#selectedMediaPreview .media-preview-item[data-media-id="${temporaryFileId}"]`).remove();
-                updateMediaOrder($('#selectedMediaPreview'));
+                const $previewContainer = $(previewSelector);
+                $(`${previewSelector} .media-preview-item[data-media-id="${temporaryFileId}"]`).remove();
+                updateMediaOrder($previewContainer);
             }
         });
 
+        pond.on('preparefile', (file) => {
+            if (file.serverId) {
+                file.status = window.FilePond.FileStatus.PROCESSING_COMPLETE;
+            }
+        });
+
+        const form = inputElement.closest('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const files = pond.getFiles();
+                const unprocessedFiles = files.filter(file => file.status !== window.FilePond.FileStatus.PROCESSING_COMPLETE);
+                
+                if (unprocessedFiles.length > 0) {
+                    e.preventDefault();
+                    toastr.error('Пожалуйста, дождитесь завершения загрузки всех файлов.');
+                    return false;
+                }
+            });
+        }
+
         return pond;
     } catch (error) {
-        console.error('Error initializing FilePond:', error);
         toastr.error('Ошибка инициализации FilePond: ' + error.message);
         return null;
     }
 }
 
-// Загрузка контента модального окна
 export function loadMediaLibraryModal(modalSelector, contentSelector) {
-    console.log('loadMediaLibraryModal initialized, modalSelector:', modalSelector);
-    console.log('appConfig:', window.appConfig);
-    console.log('Gallery button exists:', $('[data-target="#mediaLibraryModal"]').length);
-
-    // Делегирование события клика на документ
-    $(document).on('click', '[data-target="#mediaLibraryModal"], [data-toggle="modal"][data-target="#mediaLibraryModal"]', function (e) {
-        console.log('Gallery button clicked');
-        e.preventDefault(); // Предотвращаем стандартное поведение, если нужно
+    $(document).on('click', `[data-target="${modalSelector}"]`, function (e) {
+        e.preventDefault();
+        
+        if (!window.appConfig?.routes?.mediaIndex) {
+            return;
+        }
+        
         loadMediaContent(window.appConfig.routes.mediaIndex);
     });
 
     function loadMediaContent(url) {
-        console.log('Loading media content from URL:', url);
         $.get(url, function (data) {
-            console.log('Media content loaded successfully');
             $(contentSelector).html(data);
             addMediaItemClickHandlers(contentSelector);
-            restoreSelectedMediaInModal();
+            restoreSelectedMediaInModal(modalSelector, contentSelector);
             initModalSortable(contentSelector);
             initMediaDeletion(contentSelector);
             $(contentSelector).find('.pagination a').on('click', function (e) {
                 e.preventDefault();
-                console.log('Pagination link clicked:', $(this).attr('href'));
                 loadMediaContent($(this).attr('href'));
             });
-        }).fail(function (xhr) {
-            console.error('Failed to load media content:', xhr);
+        }).fail(function (xhr, status, error) {
             $(contentSelector).html('<p class="text-center text-danger">Не удалось загрузить медиафайлы.</p>');
             toastr.error('Не удалось загрузить галерею медиа.');
         });
     }
 }
 
-// Обработка кликов по элементам медиа
 export function addMediaItemClickHandlers(containerSelector) {
     $(containerSelector).off('click', '.media-item');
     $(containerSelector).on('click', '.media-item', function (e) {
@@ -164,121 +196,138 @@ export function addMediaItemClickHandlers(containerSelector) {
     });
 }
 
-// Восстановление выделения в модальном окне
-export function restoreSelectedMediaInModal() {
-    const selectedDbIdsString = $('#selectedMediaIds').val();
+export function restoreSelectedMediaInModal(modalSelector, contentSelector) {
+    const modal = document.querySelector(modalSelector);
+    if (!modal) {
+        return;
+    }
+
+    const widgetContainer = modal.closest('.media-gallery-widget');
+    if (!widgetContainer) {
+        return;
+    }
+
+    const name = widgetContainer.dataset.name;
+    const selectedMediaIdsInput = document.querySelector(`#${name}-selectedMediaIds`);
+    const selectedDbIdsString = selectedMediaIdsInput ? selectedMediaIdsInput.value : '';
     const selectedDbIds = selectedDbIdsString ? selectedDbIdsString.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
 
-    $('#mediaItemsList .media-item').each(function () {
+    $(`${contentSelector} .media-item`).each(function () {
         const mediaId = $(this).data('media-id');
         $(this).toggleClass('selected', selectedDbIds.includes(mediaId));
     });
 }
 
-// Обработка прикрепления выбранных медиа
 export function attachSelectedMedia(buttonSelector, modalSelector) {
     $(buttonSelector).on('click', function () {
-        const selectedIds = $('#mediaItemsList .media-item.selected').map(function () {
+        const modal = document.querySelector(modalSelector);
+        if (!modal) {
+            return;
+        }
+
+        const widgetContainer = modal.closest('.media-gallery-widget');
+        if (!widgetContainer) {
+            return;
+        }
+
+        const name = widgetContainer.dataset.name;
+        const selectedIds = $(`#${name}-mediaItemsList .media-item.selected`).map(function () {
             return $(this).data('media-id');
         }).get();
 
-        const currentFilepondTempIds = $('#selectedMediaPreview .media-preview-item').filter(function () {
+        const currentFilepondTempIds = $(`#${name}-selectedMediaPreview .media-preview-item`).filter(function () {
             const id = $(this).data('media-id');
             return typeof id === 'string' && id.startsWith('filepond-tmp/');
         }).map(function () {
             return $(this).data('media-id');
         }).get();
 
-        const newMediaOrder = [...currentFilepondTempIds, ...selectedIds];
-        $('#selectedMediaIds').val(selectedIds.join(','));
-        $('#mediaOrder').val(newMediaOrder.join(','));
-        updateSelectedMediaPreview(selectedIds);
+        const allSelectedIds = [...currentFilepondTempIds, ...selectedIds];
+        const uniqueIds = [...new Set(allSelectedIds)];
+
+        $(`#${name}-selectedMediaIds`).val(uniqueIds.join(','));
+        updateSelectedMediaPreview(uniqueIds, `#${name}-selectedMediaPreview`);
+
         $(modalSelector).modal('hide');
+        toastr.success('Медиафайлы прикреплены к посту.');
     });
 }
 
-// Обновление превью выбранных медиа
-export function updateSelectedMediaPreview(selectedDbIds) {
-    const $previewContainer = $('#selectedMediaPreview');
-    const currentFilepondItems = $previewContainer.children('.media-preview-item').filter(function () {
-        const id = $(this).data('media-id');
-        return typeof id === 'string' && id.startsWith('filepond-tmp/');
-    });
+export function updateSelectedMediaPreview(selectedDbIds, previewSelector = null) {
+    if (!previewSelector) {
+        const activeWidget = document.querySelector('.media-gallery-widget');
+        if (!activeWidget) {
+            return;
+        }
+        const name = activeWidget.dataset.name;
+        previewSelector = `#${name}-selectedMediaPreview`;
+    }
 
-    let filepondHtml = '';
-    currentFilepondItems.each(function () {
-        filepondHtml += this.outerHTML;
-    });
+    const $previewContainer = $(previewSelector);
+    if (!$previewContainer.length) {
+        return;
+    }
 
-    $previewContainer.empty();
-    $previewContainer.append(filepondHtml);
+    if (!selectedDbIds || selectedDbIds.length === 0) {
+        $previewContainer.empty();
+        return;
+    }
 
-    if (selectedDbIds.length > 0) {
-        $.get(window.appConfig.routes.mediaGetByIds, { ids: selectedDbIds }, function (mediaItems) {
-            const mediaOrderArray = $('#mediaOrder').val().split(',').filter(id => id !== '');
-            mediaItems.sort(function (a, b) {
-                const indexA = mediaOrderArray.indexOf(String(a.id));
-                const indexB = mediaOrderArray.indexOf(String(b.id));
-                if (indexA === -1 && indexB === -1) return 0;
-                if (indexA === -1) return 1;
-                if (indexB === -1) return -1;
-                return indexA - indexB;
-            });
+    if (!window.appConfig?.routes?.mediaGetByIds) {
+        return;
+    }
 
-            mediaItems.forEach(function (media) {
-                if (media && media.id && $previewContainer.find(`.media-preview-item[data-media-id="${media.id}"]`).length === 0) {
-                    const imageUrl = media.url_thumb || media.url;
-                    const isImage = media.mime_type && media.mime_type.startsWith('image/');
-                    $previewContainer.append(`
-                        <div class="media-preview-item col-auto p-0 mr-2 mb-2" data-media-id="${media.id}">
-                            <button type="button" class="remove-btn" data-media-id="${media.id}">×</button>
-                            <div class="d-flex align-items-center justify-content-center bg-light rounded" style="width: 80px; height: 80px; overflow: hidden;">
-                                ${isImage ? `<img src="${imageUrl}" class="img-thumbnail rounded" alt="${media.file_name}">` : `<i class="fas fa-file fa-3x text-muted"></i>`}
-                            </div>
-                            <small class="d-block text-truncate mt-1" title="${media.file_name}">${media.file_name}</small>
-                        </div>
-                    `);
-                }
-            });
+    $.get(window.appConfig.routes.mediaGetByIds, { ids: selectedDbIds.join(',') }, function (data) {
+        $previewContainer.empty();
+        
+        data.forEach(media => {
+            const isImage = media.mime_type && media.mime_type.startsWith('image/');
+            const previewUrl = isImage ? media.url : null;
 
-            updateMediaOrder($previewContainer);
-
-            $previewContainer.off('click', '.remove-btn');
-            $previewContainer.on('click', '.remove-btn', function () {
-                const mediaIdToRemove = $(this).data('media-id');
-                $(this).closest('.media-preview-item').remove();
-                updateMediaOrder($previewContainer);
-
-                if (typeof mediaIdToRemove === 'number' && !isNaN(mediaIdToRemove)) {
-                    const currentSelectedDbIds = $('#selectedMediaIds').val().split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
-                    const updatedSelectedDbIds = currentSelectedDbIds.filter(id => id !== mediaIdToRemove);
-                    $('#selectedMediaIds').val(updatedSelectedDbIds.join(','));
-                }
-            });
+            $previewContainer.append(`
+                <div class="media-preview-item col-auto p-0 mr-2 mb-2" data-media-id="${media.id}">
+                    <button type="button" class="remove-btn" data-media-id="${media.id}">×</button>
+                    <div class="d-flex align-items-center justify-content-center bg-light rounded" style="width: 80px; height: 80px; overflow: hidden;">
+                        ${isImage ? `<img src="${previewUrl}" class="img-thumbnail rounded" alt="${media.name}">` : `<i class="fas fa-file fa-3x text-muted"></i>`}
+                    </div>
+                    <small class="d-block text-truncate mt-1" title="${media.name}">${media.name}</small>
+                </div>
+            `);
         });
-    } else {
-        updateMediaOrder($previewContainer);
-    }
+
+        initMainSortable(previewSelector);
+        initMediaDeletion(previewSelector);
+    }).fail(function () {
+        toastr.error('Не удалось загрузить превью медиафайлов.');
+    });
 }
 
-// Обновление порядка медиа
 export function updateMediaOrder($previewContainer) {
-    const orderedIds = $previewContainer.find('.media-preview-item').map(function () {
-        return $(this).data('media-id');
-    }).get();
-    $('#mediaOrder').val(orderedIds.join(','));
-
-    const sortable = $previewContainer[0].sortableInstance;
-    if (sortable) {
-        sortable.sort(orderedIds);
+    if (!$previewContainer || !$previewContainer.length) {
+        return;
     }
+
+    const container = $previewContainer[0];
+    if (!container.sortableInstance) {
+        return;
+    }
+
+    const mediaIds = [];
+    $previewContainer.find('.media-preview-item').each(function () {
+        const mediaId = $(this).data('media-id');
+        if (mediaId) {
+            mediaIds.push(mediaId);
+        }
+    });
+
+    const widgetName = $previewContainer.closest('.media-gallery-widget').data('name');
+    $(`#${widgetName}-mediaOrder`).val(mediaIds.join(','));
 }
 
-// Инициализация SortableJS для основной формы
 export function initMainSortable(containerSelector) {
     const previewContainer = document.querySelector(containerSelector);
     if (previewContainer && !previewContainer.sortableInstance) {
-        const sortable = Sortable.create(previewContainer, {
+        const sortable = window.Sortable.create(previewContainer, {
             animation: 150,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
@@ -290,12 +339,11 @@ export function initMainSortable(containerSelector) {
     }
 }
 
-// Инициализация SortableJS для модального окна
 export function initModalSortable(containerSelector) {
     $(document).on('shown.bs.modal', '#mediaLibraryModal', function () {
         const modalContainer = document.querySelector(containerSelector);
         if (modalContainer && !modalContainer.sortableInstance) {
-            const sortable = Sortable.create(modalContainer, {
+            const sortable = window.Sortable.create(modalContainer, {
                 animation: 150,
                 ghostClass: 'sortable-ghost',
                 chosenClass: 'sortable-chosen',
@@ -307,7 +355,6 @@ export function initModalSortable(containerSelector) {
     });
 }
 
-// Инициализация обработки удаления медиа
 export function initMediaDeletion(containerSelector) {
     $(containerSelector).off('click', '.delete-media-btn');
     $(containerSelector).on('click', '.delete-media-btn', function (e) {

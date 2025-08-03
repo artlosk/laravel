@@ -8,7 +8,6 @@ use App\Http\Requests\UpdateRoleRequest;
 use App\Http\Requests\StorePermissionRequest;
 use App\Http\Requests\UpdatePermissionRequest;
 use App\Http\Requests\UpdateUserRolesPermissionsRequest;
-use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Models\User;
@@ -70,7 +69,6 @@ class RolePermissionController extends Controller
             });
             return redirect()->route('backend.roles.index')->with('success', __('messages.role_created'));
         } catch (\Exception $e) {
-            Log::error('Failed to create role: ' . $e->getMessage());
             return redirect()->route('backend.roles.create')->with('error', __('messages.role_creation_failed'));
         }
     }
@@ -105,7 +103,6 @@ class RolePermissionController extends Controller
             });
             return redirect()->route('backend.roles.index')->with('success', __('messages.role_updated'));
         } catch (\Exception $e) {
-            Log::error('Failed to update role: ' . $e->getMessage());
             return redirect()->route('backend.roles.edit', $role)->with('error', __('messages.role_update_failed'));
         }
     }
@@ -126,7 +123,6 @@ class RolePermissionController extends Controller
             $role->delete();
             return redirect()->route('backend.roles.index')->with('success', __('messages.role_deleted'));
         } catch (\Exception $e) {
-            Log::error('Failed to delete role: ' . $e->getMessage());
             return redirect()->route('backend.roles.index')->with('error', __('messages.role_deletion_failed'));
         }
     }
@@ -166,7 +162,6 @@ class RolePermissionController extends Controller
             Permission::create(['name' => $request->input('name')]);
             return redirect()->route('backend.permissions.index')->with('success', __('messages.permission_created'));
         } catch (\Exception $e) {
-            Log::error('Failed to create permission: ' . $e->getMessage());
             return redirect()->route('backend.permissions.create')->with('error', __('messages.permission_creation_failed'));
         }
     }
@@ -196,7 +191,6 @@ class RolePermissionController extends Controller
             $permission->update(['name' => $request->input('name')]);
             return redirect()->route('backend.permissions.index')->with('success', __('messages.permission_updated'));
         } catch (\Exception $e) {
-            Log::error('Failed to update permission: ' . $e->getMessage());
             return redirect()->route('backend.permissions.edit', $permission)->with('error', __('messages.permission_update_failed'));
         }
     }
@@ -217,8 +211,7 @@ class RolePermissionController extends Controller
             $permission->delete();
             return redirect()->route('backend.permissions.index')->with('success', __('messages.permission_deleted'));
         } catch (\Exception $e) {
-            Log::error('Failed to delete permission: ' . $e->getMessage());
-            return redirect()->route('backend.permissions.index')->with('error', __('messages.permission_deletion_failed'));
+            return redirect()->route('backend.roles.index')->with('error', __('messages.permission_deletion_failed'));
         }
     }
 
@@ -253,7 +246,6 @@ class RolePermissionController extends Controller
             });
             return redirect()->route('backend.roles.manage')->with('success', __('messages.user_roles_permissions_updated'));
         } catch (\Exception $e) {
-            Log::error('Failed to update user roles/permissions: ' . $e->getMessage());
             return redirect()->route('backend.roles.manage')->with('error', __('messages.user_roles_permissions_update_failed'));
         }
     }

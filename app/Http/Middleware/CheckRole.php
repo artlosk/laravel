@@ -10,7 +10,7 @@ class CheckRole
 {
     public function handle(Request $request, Closure $next, string $role)
     {
-        $roles = explode('|', $role); // Поддержка нескольких ролей, например, admin|author
+        $roles = explode('|', $role);
         if (!Auth::check() || !Auth::user()->hasAnyRole($roles)) {
             abort(403, 'Unauthorized action.');
         }

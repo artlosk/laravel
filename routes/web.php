@@ -18,12 +18,9 @@ Route::get('/', function () {
 
 Auth::routes();
 
-//Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
-
 Route::get('/posts', [FrontendPostController::class, 'index'])->name('frontend.posts.index')->middleware('permission:read-posts');
 Route::get('/posts/{post}', [FrontendPostController::class, 'show'])->name('frontend.posts.show')->middleware('permission:read-posts');
 
-// Публичные маршруты для профиля
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('frontend.dashboard');
     Route::match(['get', 'post'], '/profile', [FrontendProfileController::class, 'update'])->name('frontend.profile');
@@ -32,16 +29,17 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'permission:access-admin-panel'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'index'])->name('backend.dashboard');
-    // Маршрут для профиля
     Route::match(['get', 'post'], '/profile', [BackendProfileController::class, 'update'])->name('backend.profile');
     Route::match(['get', 'post'], '/password', [BackendProfileController::class, 'changePassword'])->name('backend.password');
 
     Route::middleware(['auth', 'permission:read-posts'])->group(function () {
         Route::get('/posts', [BackendPostController::class, 'index'])->name('backend.posts.index');
-        Route::match(['get', 'post'], '/posts/create', [BackendPostController::class, 'create'])->name('backend.posts.create');
-        Route::match(['get', 'put'], '/posts/{post}/update', [BackendPostController::class, 'update'])->name('backend.posts.update');
-        Route::get('/posts/{post}', [BackendPostController::class, 'show'])->name('backend.posts.show');
+        Route::get('/posts/create', [BackendPostController::class, 'create'])->name('backend.posts.create');
+        Route::post('/posts', [BackendPostController::class, 'store'])->name('backend.posts.store');
+        Route::get('/posts/{post}/edit', [BackendPostController::class, 'edit'])->name('backend.posts.edit');
+        Route::put('/posts/{post}', [BackendPostController::class, 'update'])->name('backend.posts.update');
         Route::delete('/posts/{post}', [BackendPostController::class, 'delete'])->name('backend.posts.delete');
+        Route::get('/posts/{post}', [BackendPostController::class, 'show'])->name('backend.posts.show');
     });
     Route::middleware(['auth', 'permission:manage-roles|manage-permissions'])->group(function () {
         Route::get('/roles', [RolePermissionController::class, 'indexRoles'])->name('backend.roles.index');
@@ -72,10 +70,8 @@ Route::middleware(['auth', 'permission:access-admin-panel'])->prefix('admin')->g
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('backend.users.destroy');
     });
 
-    // Страница с Filepond
     Route::view('/upload', 'backend.upload');
 
-    // Обработка загрузки медиа
     Route::post('/upload-media', [BackendPostController::class, 'uploadMedia'])->name('admin.upload-media');
     Route::delete('/posts/{post}/remove-media/{media}', [BackendPostController::class, 'removeMedia'])->name('backend.posts.removeMedia');
 
@@ -83,13 +79,10 @@ Route::middleware(['auth', 'permission:access-admin-panel'])->prefix('admin')->g
     Route::get('/get-gallery-images', [BackendPostController::class, 'getGalleryImages'])->name('gallery.images');
     Route::post('/posts/{post}/attach-media/{mediaId}', [BackendPostController::class, 'attachMediaToPost'])->name('post.attach.media');
 
-
-// Маршруты для управления медиа (галереи)
     Route::get('media', [App\Http\Controllers\backend\MediaController::class, 'index'])->name('backend.media.index');
     Route::get('media/get-by-ids', [App\Http\Controllers\backend\MediaController::class, 'getByIds'])->name('backend.media.getByIds');
     Route::delete('media/{media}', [App\Http\Controllers\backend\MediaController::class, 'deleteMedia'])->name('backend.media.delete');
 
-    // Маршруты для FilePond
     Route::post('filepond/upload', [App\Http\Controllers\backend\MediaController::class, 'uploadFilepond'])->name('backend.filepond.upload');
     Route::delete('filepond/delete', [App\Http\Controllers\backend\MediaController::class, 'deleteFilepond'])->name('backend.filepond.delete');
 });

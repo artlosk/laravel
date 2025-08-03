@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 
 class AdminMenuServiceProvider extends ServiceProvider
@@ -16,16 +15,13 @@ class AdminMenuServiceProvider extends ServiceProvider
 
     public function boot()
     {
-        Log::info('AdminMenuServiceProvider booted');
     }
 
     protected function buildSidebarMenu()
     {
         return [
-            // Заголовок: MAIN NAVIGATION
             'MAIN NAVIGATION',
 
-            // Пункт: Dashboard
             [
                 'text' => 'Dashboard',
                 'route' => 'backend.dashboard',
@@ -35,7 +31,6 @@ class AdminMenuServiceProvider extends ServiceProvider
                 'order' => 10,
             ],
 
-            // Пункт: Posts
             [
                 'text' => 'Posts',
                 'route' => 'backend.posts.index',
@@ -45,7 +40,6 @@ class AdminMenuServiceProvider extends ServiceProvider
                 'order' => 20,
             ],
 
-            // Пункт: Roles
             [
                 'text' => 'Roles',
                 'route' => 'backend.roles.index',
@@ -55,7 +49,6 @@ class AdminMenuServiceProvider extends ServiceProvider
                 'order' => 30,
             ],
 
-            // Пункт: Permissions
             [
                 'text' => 'Permissions',
                 'route' => 'backend.permissions.index',
@@ -65,7 +58,6 @@ class AdminMenuServiceProvider extends ServiceProvider
                 'order' => 40,
             ],
 
-            // Пункт: User Roles & Permissions
             [
                 'text' => 'User Roles & Permissions',
                 'route' => 'backend.roles.manage',
@@ -76,7 +68,6 @@ class AdminMenuServiceProvider extends ServiceProvider
                 'order' => 50,
             ],
 
-            // Пункт: User Management (с подменю)
             [
                 'text' => 'User Management',
                 'icon' => 'fas fa-users',
@@ -100,50 +91,42 @@ class AdminMenuServiceProvider extends ServiceProvider
                 'order' => 60,
             ],
 
-            // Заголовок: ACCOUNT SETTINGS
             'ACCOUNT SETTINGS',
 
-            // Пункт: Profile
             [
                 'text' => 'Profile',
                 'route' => 'backend.profile',
                 'icon' => 'fas fa-fw fa-user',
             ],
 
-            // Пункт: Change Password
             [
                 'text' => 'Change Password',
                 'route' => 'backend.password',
                 'icon' => 'fas fa-fw fa-lock',
             ],
 
-            // Элемент навигационной панели: Поиск
             [
                 'type' => 'navbar-search',
                 'text' => 'search',
                 'topnav_right' => true,
             ],
 
-            // Элемент навигационной панели: Полноэкранный режим
             [
                 'type' => 'fullscreen-widget',
                 'topnav_right' => true,
             ],
 
-            // Элемент боковой панели: Поиск
             [
                 'type' => 'sidebar-menu-search',
                 'text' => 'search',
             ],
 
-            // Пункт: Blog
             [
                 'text' => 'blog',
                 'url' => 'admin/blog',
                 'can' => 'manage-blog',
             ],
 
-            // Пункт: Pages
             [
                 'text' => 'pages',
                 'url' => 'admin/pages',
@@ -152,24 +135,20 @@ class AdminMenuServiceProvider extends ServiceProvider
                 'label_color' => 'success',
             ],
 
-            // Заголовок: account_settings
             ['header' => 'account_settings'],
 
-            // Пункт: Profile (повтор)
             [
                 'text' => 'profile',
                 'url' => 'admin/settings',
                 'icon' => 'fas fa-fw fa-user',
             ],
 
-            // Пункт: Change Password (повтор)
             [
                 'text' => 'change_password',
                 'url' => 'admin/settings',
                 'icon' => 'fas fa-fw fa-lock',
             ],
 
-            // Пункт: Multilevel (с многоуровневым подменю)
             [
                 'text' => 'multilevel',
                 'icon' => 'fas fa-fw fa-share',
@@ -209,24 +188,20 @@ class AdminMenuServiceProvider extends ServiceProvider
                 ],
             ],
 
-            // Заголовок: labels
             ['header' => 'labels'],
 
-            // Пункт: Important
             [
                 'text' => 'important',
                 'icon_color' => 'red',
                 'url' => '#',
             ],
 
-            // Пункт: Warning
             [
                 'text' => 'warning',
                 'icon_color' => 'yellow',
                 'url' => '#',
             ],
 
-            // Пункт: Information
             [
                 'text' => 'information',
                 'icon_color' => 'cyan',

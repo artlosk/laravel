@@ -9,7 +9,6 @@ use Illuminate\Http\Response;
 
 class PostController extends Controller
 {
-// Просмотр списка (требует permission:read-posts)
     public function index(Request $request)
     {
         $this->authorize('read-posts');
@@ -21,7 +20,6 @@ class PostController extends Controller
         return response()->json(Post::all());
     }
 
-    // Просмотр конкретного поста (требует permission:read-posts)
     public function show($id)
     {
         $post = Post::findOrFail($id);
@@ -29,7 +27,6 @@ class PostController extends Controller
         return response()->json($post);
     }
 
-    // Создание поста (требует permission:create-posts)
     public function store(Request $request)
     {
         $this->authorize('create-posts');
@@ -43,7 +40,6 @@ class PostController extends Controller
         return response()->json($post, Response::HTTP_CREATED);
     }
 
-    // Редактирование поста (требует permission:edit-posts)
     public function update(Request $request, $id)
     {
         $post = Post::findOrFail($id);
@@ -58,7 +54,6 @@ class PostController extends Controller
         return response()->json($post);
     }
 
-    // Удаление поста (требует permission:delete-posts)
     public function destroy($id)
     {
         $post = Post::findOrFail($id);

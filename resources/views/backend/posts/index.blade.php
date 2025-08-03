@@ -39,7 +39,7 @@
                         <td>{{ $post->user->name }}</td>
                         <td>
                             @can('edit-posts')
-                                <a href="{{ route('backend.posts.update', $post) }}"
+                                <a href="{{ route('backend.posts.edit', $post) }}"
                                    class="btn btn-sm btn-warning">Edit</a>
                             @endcan
                             @can('delete-posts')

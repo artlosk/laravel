@@ -21,12 +21,11 @@ class MediaController extends Controller
     public function getByIds(Request $request)
     {
         $ids = $request->input('ids', []);
-        
-        // Если ids - это строка с запятыми, разбиваем её на массив
+
         if (is_string($ids)) {
             $ids = array_filter(array_map('trim', explode(',', $ids)));
         }
-        
+
         $validIds = array_filter(array_map('intval', (array) $ids), function($id) {
             return $id > 0;
         });
@@ -35,7 +34,6 @@ class MediaController extends Controller
             return response()->json([]);
         }
 
-        // Получаем медиафайлы с правильным порядком из pivot таблицы
         $mediaItems = Media::whereIn('id', $validIds)
             ->whereIn('id', function($query) {
                 $query->select('media_id')
@@ -44,7 +42,7 @@ class MediaController extends Controller
             })
             ->orderByRaw('FIELD(id, ' . implode(',', $validIds) . ')')
             ->get();
-        
+
         $result = $mediaItems->map(function($media) {
             return [
                 'id' => $media->id,
@@ -63,7 +61,7 @@ class MediaController extends Controller
     {
         try {
             $files = $request->file('filepond') ?? $request->file('media.filepond');
-            
+
             if (empty($files)) {
                 return response()->json(['error' => 'No files uploaded'], 422);
             }
@@ -74,7 +72,7 @@ class MediaController extends Controller
             } elseif ($request->hasFile('media.filepond')) {
                 $validationRules['media.filepond.*'] = 'required|file|max:10240|mimes:jpg,jpeg,png';
             }
-            
+
             if (!empty($validationRules)) {
                 $request->validate($validationRules);
             }

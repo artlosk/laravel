@@ -26,9 +26,9 @@ export function initializeFilePond(input) {
         }
 
         const originalInputElement = inputElement;
-        
+
         const widgetContainer = originalInputElement.closest('.media-gallery-widget');
-        
+
         if (!widgetContainer) {
             return null;
         }
@@ -92,10 +92,10 @@ export function initializeFilePond(input) {
             if (error) return;
 
             const temporaryFileId = file.serverId;
-            
+
             if (temporaryFileId) {
                 const $previewContainer = $(previewSelector);
-                
+
                 if (!$previewContainer.length) {
                     return;
                 }
@@ -140,7 +140,7 @@ export function initializeFilePond(input) {
             form.addEventListener('submit', function(e) {
                 const files = pond.getFiles();
                 const unprocessedFiles = files.filter(file => file.status !== window.FilePond.FileStatus.PROCESSING_COMPLETE);
-                
+
                 if (unprocessedFiles.length > 0) {
                     e.preventDefault();
                     toastr.error('Пожалуйста, дождитесь завершения загрузки всех файлов.');
@@ -159,11 +159,11 @@ export function initializeFilePond(input) {
 export function loadMediaLibraryModal(modalSelector, contentSelector) {
     $(document).on('click', `[data-target="${modalSelector}"]`, function (e) {
         e.preventDefault();
-        
+
         if (!window.appConfig?.routes?.mediaIndex) {
             return;
         }
-        
+
         loadMediaContent(window.appConfig.routes.mediaIndex);
     });
 
@@ -235,7 +235,6 @@ export function attachSelectedMedia(buttonSelector, modalSelector) {
             return $(this).data('media-id');
         }).get();
 
-        // Получаем существующие ID медиафайлов (не временные FilePond)
         const existingMediaIds = $(`#${name}-selectedMediaPreview .media-preview-item`).filter(function () {
             const id = $(this).data('media-id');
             return typeof id === 'number' || (typeof id === 'string' && !id.startsWith('filepond-tmp/'));
@@ -243,7 +242,6 @@ export function attachSelectedMedia(buttonSelector, modalSelector) {
             return $(this).data('media-id');
         }).get();
 
-        // Получаем только временные ID из FilePond (новые загруженные файлы)
         const currentFilepondTempIds = $(`#${name}-selectedMediaPreview .media-preview-item`).filter(function () {
             const id = $(this).data('media-id');
             return typeof id === 'string' && id.startsWith('filepond-tmp/');
@@ -251,7 +249,6 @@ export function attachSelectedMedia(buttonSelector, modalSelector) {
             return $(this).data('media-id');
         }).get();
 
-        // Объединяем: сначала существующие, потом новые из галереи, потом временные FilePond
         const allSelectedIds = [...existingMediaIds, ...selectedIds, ...currentFilepondTempIds];
         const uniqueIds = [...new Set(allSelectedIds)];
 
@@ -261,18 +258,16 @@ export function attachSelectedMedia(buttonSelector, modalSelector) {
         $(`#${name}-mediaOrder`).val(uniqueIds.join(','));
         updateSelectedMediaPreview(uniqueIds, `#${name}-selectedMediaPreview`);
 
-        // Закрываем модальное окно
         const modalElement = document.querySelector(modalSelector);
         if (modalElement && typeof $(modalElement).modal === 'function') {
             $(modalElement).modal('hide');
         } else if (modalElement) {
-            // Fallback: используем Bootstrap 5 API
             const modal = bootstrap.Modal.getInstance(modalElement);
             if (modal) {
                 modal.hide();
             }
         }
-        
+
         toastr.success('Медиафайлы прикреплены к посту.');
     });
 }
@@ -304,10 +299,9 @@ export function updateSelectedMediaPreview(selectedDbIds, previewSelector = null
     const requestData = { ids: selectedDbIds.join(',') };
     $.get(window.appConfig.routes.mediaGetByIds, requestData, function (data) {
         $previewContainer.empty();
-        
-        // Преобразуем объект в массив, если нужно
+
         const mediaArray = Array.isArray(data) ? data : Object.values(data);
-        
+
         if (mediaArray && mediaArray.length > 0) {
             mediaArray.forEach(media => {
                 const isImage = media.mime_type && media.mime_type.startsWith('image/');
@@ -353,7 +347,7 @@ export function updateMediaOrder($previewContainer) {
     const widgetName = $previewContainer.closest('.media-gallery-widget').data('name');
     const mediaOrderSelector = `#${widgetName}-mediaOrder`;
     const mediaOrderInput = $(mediaOrderSelector);
-    
+
     mediaOrderInput.val(mediaIds.join(','));
 }
 
@@ -389,33 +383,28 @@ export function initModalSortable(containerSelector) {
 }
 
 export function initMediaDeletion(containerSelector) {
-    // Обработка удаления из превью (удаление из поста)
     $(containerSelector).off('click', '.remove-btn');
     $(containerSelector).on('click', '.remove-btn', function (e) {
         e.stopPropagation();
         const mediaId = $(this).data('media-id');
         const $previewItem = $(this).closest('.media-preview-item');
-        
-        // Удаляем элемент из превью
+
         $previewItem.remove();
-        
-        // Обновляем скрытые поля
+
         const widgetContainer = $(containerSelector).closest('.media-gallery-widget');
         const widgetName = widgetContainer.data('name');
         const selectedMediaIdsSelector = `#${widgetName}-selectedMediaIds`;
-        
+
         const currentSelectedIdsString = $(selectedMediaIdsSelector).val();
         const currentSelectedIds = currentSelectedIdsString ? currentSelectedIdsString.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
         const updatedSelectedIds = currentSelectedIds.filter(id => id !== mediaId);
         $(selectedMediaIdsSelector).val(updatedSelectedIds.join(','));
-        
-        // Обновляем порядок
+
         updateMediaOrder($(containerSelector));
-        
+
         toastr.success('Медиафайл удален из поста.');
     });
-    
-    // Обработка полного удаления из галереи
+
     $(containerSelector).off('click', '.delete-media-btn');
     $(containerSelector).on('click', '.delete-media-btn', function (e) {
         e.stopPropagation();
@@ -434,7 +423,7 @@ export function initMediaDeletion(containerSelector) {
                     const widgetContainer = $(containerSelector).closest('.media-gallery-widget');
                     const widgetName = widgetContainer.data('name');
                     const selectedMediaIdsSelector = `#${widgetName}-selectedMediaIds`;
-                    
+
                     const currentSelectedIdsString = $(selectedMediaIdsSelector).val();
                     const currentSelectedIds = currentSelectedIdsString ? currentSelectedIdsString.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
                     const updatedSelectedIds = currentSelectedIds.filter(id => id !== mediaId);

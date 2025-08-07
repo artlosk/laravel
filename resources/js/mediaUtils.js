@@ -235,6 +235,15 @@ export function attachSelectedMedia(buttonSelector, modalSelector) {
             return $(this).data('media-id');
         }).get();
 
+        // Получаем существующие ID медиафайлов (не временные FilePond)
+        const existingMediaIds = $(`#${name}-selectedMediaPreview .media-preview-item`).filter(function () {
+            const id = $(this).data('media-id');
+            return typeof id === 'number' || (typeof id === 'string' && !id.startsWith('filepond-tmp/'));
+        }).map(function () {
+            return $(this).data('media-id');
+        }).get();
+
+        // Получаем только временные ID из FilePond (новые загруженные файлы)
         const currentFilepondTempIds = $(`#${name}-selectedMediaPreview .media-preview-item`).filter(function () {
             const id = $(this).data('media-id');
             return typeof id === 'string' && id.startsWith('filepond-tmp/');
@@ -242,13 +251,28 @@ export function attachSelectedMedia(buttonSelector, modalSelector) {
             return $(this).data('media-id');
         }).get();
 
-        const allSelectedIds = [...currentFilepondTempIds, ...selectedIds];
+        // Объединяем: сначала существующие, потом новые из галереи, потом временные FilePond
+        const allSelectedIds = [...existingMediaIds, ...selectedIds, ...currentFilepondTempIds];
         const uniqueIds = [...new Set(allSelectedIds)];
 
+
+
         $(`#${name}-selectedMediaIds`).val(uniqueIds.join(','));
+        $(`#${name}-mediaOrder`).val(uniqueIds.join(','));
         updateSelectedMediaPreview(uniqueIds, `#${name}-selectedMediaPreview`);
 
-        $(modalSelector).modal('hide');
+        // Закрываем модальное окно
+        const modalElement = document.querySelector(modalSelector);
+        if (modalElement && typeof $(modalElement).modal === 'function') {
+            $(modalElement).modal('hide');
+        } else if (modalElement) {
+            // Fallback: используем Bootstrap 5 API
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+        }
+        
         toastr.success('Медиафайлы прикреплены к посту.');
     });
 }
@@ -277,27 +301,33 @@ export function updateSelectedMediaPreview(selectedDbIds, previewSelector = null
         return;
     }
 
-    $.get(window.appConfig.routes.mediaGetByIds, { ids: selectedDbIds.join(',') }, function (data) {
+    const requestData = { ids: selectedDbIds.join(',') };
+    $.get(window.appConfig.routes.mediaGetByIds, requestData, function (data) {
         $previewContainer.empty();
         
-        data.forEach(media => {
-            const isImage = media.mime_type && media.mime_type.startsWith('image/');
-            const previewUrl = isImage ? media.url : null;
+        // Преобразуем объект в массив, если нужно
+        const mediaArray = Array.isArray(data) ? data : Object.values(data);
+        
+        if (mediaArray && mediaArray.length > 0) {
+            mediaArray.forEach(media => {
+                const isImage = media.mime_type && media.mime_type.startsWith('image/');
+                const previewUrl = isImage ? media.url : null;
 
-            $previewContainer.append(`
-                <div class="media-preview-item col-auto p-0 mr-2 mb-2" data-media-id="${media.id}">
-                    <button type="button" class="remove-btn" data-media-id="${media.id}">×</button>
-                    <div class="d-flex align-items-center justify-content-center bg-light rounded" style="width: 80px; height: 80px; overflow: hidden;">
-                        ${isImage ? `<img src="${previewUrl}" class="img-thumbnail rounded" alt="${media.name}">` : `<i class="fas fa-file fa-3x text-muted"></i>`}
+                $previewContainer.append(`
+                    <div class="media-preview-item col-auto p-0 mr-2 mb-2" data-media-id="${media.id}">
+                        <button type="button" class="remove-btn" data-media-id="${media.id}">×</button>
+                        <div class="d-flex align-items-center justify-content-center bg-light rounded" style="width: 80px; height: 80px; overflow: hidden;">
+                            ${isImage ? `<img src="${previewUrl}" class="img-thumbnail rounded" alt="${media.name}">` : `<i class="fas fa-file fa-3x text-muted"></i>`}
+                        </div>
+                        <small class="d-block text-truncate mt-1" title="${media.name}">${media.name}</small>
                     </div>
-                    <small class="d-block text-truncate mt-1" title="${media.name}">${media.name}</small>
-                </div>
-            `);
-        });
+                `);
+            });
+        }
 
         initMainSortable(previewSelector);
         initMediaDeletion(previewSelector);
-    }).fail(function () {
+    }).fail(function (xhr, status, error) {
         toastr.error('Не удалось загрузить превью медиафайлов.');
     });
 }
@@ -321,7 +351,10 @@ export function updateMediaOrder($previewContainer) {
     });
 
     const widgetName = $previewContainer.closest('.media-gallery-widget').data('name');
-    $(`#${widgetName}-mediaOrder`).val(mediaIds.join(','));
+    const mediaOrderSelector = `#${widgetName}-mediaOrder`;
+    const mediaOrderInput = $(mediaOrderSelector);
+    
+    mediaOrderInput.val(mediaIds.join(','));
 }
 
 export function initMainSortable(containerSelector) {
@@ -356,6 +389,33 @@ export function initModalSortable(containerSelector) {
 }
 
 export function initMediaDeletion(containerSelector) {
+    // Обработка удаления из превью (удаление из поста)
+    $(containerSelector).off('click', '.remove-btn');
+    $(containerSelector).on('click', '.remove-btn', function (e) {
+        e.stopPropagation();
+        const mediaId = $(this).data('media-id');
+        const $previewItem = $(this).closest('.media-preview-item');
+        
+        // Удаляем элемент из превью
+        $previewItem.remove();
+        
+        // Обновляем скрытые поля
+        const widgetContainer = $(containerSelector).closest('.media-gallery-widget');
+        const widgetName = widgetContainer.data('name');
+        const selectedMediaIdsSelector = `#${widgetName}-selectedMediaIds`;
+        
+        const currentSelectedIdsString = $(selectedMediaIdsSelector).val();
+        const currentSelectedIds = currentSelectedIdsString ? currentSelectedIdsString.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
+        const updatedSelectedIds = currentSelectedIds.filter(id => id !== mediaId);
+        $(selectedMediaIdsSelector).val(updatedSelectedIds.join(','));
+        
+        // Обновляем порядок
+        updateMediaOrder($(containerSelector));
+        
+        toastr.success('Медиафайл удален из поста.');
+    });
+    
+    // Обработка полного удаления из галереи
     $(containerSelector).off('click', '.delete-media-btn');
     $(containerSelector).on('click', '.delete-media-btn', function (e) {
         e.stopPropagation();
@@ -371,12 +431,16 @@ export function initMediaDeletion(containerSelector) {
                 success: function (response) {
                     $(`.media-item[data-media-id="${mediaId}"]`).remove();
 
-                    const currentSelectedIdsString = $('#selectedMediaIds').val();
+                    const widgetContainer = $(containerSelector).closest('.media-gallery-widget');
+                    const widgetName = widgetContainer.data('name');
+                    const selectedMediaIdsSelector = `#${widgetName}-selectedMediaIds`;
+                    
+                    const currentSelectedIdsString = $(selectedMediaIdsSelector).val();
                     const currentSelectedIds = currentSelectedIdsString ? currentSelectedIdsString.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
                     const updatedSelectedIds = currentSelectedIds.filter(id => id !== mediaId);
-                    $('#selectedMediaIds').val(updatedSelectedIds.join(','));
+                    $(selectedMediaIdsSelector).val(updatedSelectedIds.join(','));
 
-                    updateSelectedMediaPreview(updatedSelectedIds);
+                    updateSelectedMediaPreview(updatedSelectedIds, containerSelector);
 
                     if ($('#mediaItemsList .media-item').length === 0) {
                         $('#mediaItemsList').html('<div class="col-12"><p class="text-center">Медиафайлы не найдены.</p></div>');

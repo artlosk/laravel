@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -41,12 +42,17 @@ class Post extends Model implements HasMedia, HasMediaSync
 
     public function syncMedia(array $data): void
     {
+
+        
         $filepondFiles = $data['filepond'] ?? [];
         $validFilepondFiles = array_filter($filepondFiles, fn($path) => $path !== null && $path !== '');
+        
+
 
         $newMediaIds = [];
         $filepondIdMap = [];
 
+        // Обрабатываем файлы из FilePond
         foreach ($validFilepondFiles as $filepondPath) {
             if (Storage::disk('public')->exists($filepondPath)) {
                 try {
@@ -54,12 +60,16 @@ class Post extends Model implements HasMedia, HasMediaSync
                     $newMediaIds[] = $mediaItem->id;
                     $filepondIdMap[$filepondPath] = $mediaItem->id;
                 } catch (\Exception $e) {
+                    Log::error('Error adding media from filepond: ' . $e->getMessage());
                 }
             }
         }
 
-        $receivedMediaOrderString = $data['media_order'] ?? '';
+        // Получаем порядок медиафайлов
+        $receivedMediaOrderString = $data['media_order'] ?? $data['selected_media_ids'] ?? '';
         $receivedMediaOrder = array_filter(array_map('trim', explode(',', $receivedMediaOrderString)));
+
+
 
         $syncData = [];
         $order = 1;
@@ -86,9 +96,18 @@ class Post extends Model implements HasMedia, HasMediaSync
             }
         }
 
+
+
         try {
-            $this->relatedMedia()->sync($syncData);
+            // Сначала очищаем все существующие связи
+            $this->relatedMedia()->detach();
+            
+            // Затем добавляем новые связи
+            if (!empty($syncData)) {
+                $this->relatedMedia()->attach($syncData);
+            }
         } catch (\Exception $e) {
+            Log::error('Error syncing media: ' . $e->getMessage());
             throw new \Exception('Не удалось синхронизировать медиа: ' . $e->getMessage());
         }
 

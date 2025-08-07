@@ -47,6 +47,7 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
+
                 <x-media-gallery name="media" :initialMedia="$post->relatedMedia ?? []" />
                 @error('media.*')
                 <div class="invalid-feedback d-block">{{ $message }}</div>

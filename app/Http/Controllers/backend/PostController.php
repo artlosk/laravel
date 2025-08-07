@@ -46,12 +46,18 @@ class PostController extends Controller
     public function show(Post $post)
     {
         $this->authorize('read-posts');
+        $post->load(['relatedMedia' => function($query) {
+            $query->orderBy('media_relation_entity.order_column');
+        }]);
         return view('backend.posts.show', compact('post'));
     }
 
     public function edit(Post $post)
     {
         $this->authorize('edit-posts');
+        $post->load(['relatedMedia' => function($query) {
+            $query->orderBy('media_relation_entity.order_column');
+        }]);
         return view('backend.posts.form', compact('post'));
     }
 

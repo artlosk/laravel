@@ -5,6 +5,7 @@ namespace App\Http\Controllers\backend;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Log;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +21,12 @@ class MediaController extends Controller
     public function getByIds(Request $request)
     {
         $ids = $request->input('ids', []);
+        
+        // Если ids - это строка с запятыми, разбиваем её на массив
+        if (is_string($ids)) {
+            $ids = array_filter(array_map('trim', explode(',', $ids)));
+        }
+        
         $validIds = array_filter(array_map('intval', (array) $ids), function($id) {
             return $id > 0;
         });
@@ -28,7 +35,17 @@ class MediaController extends Controller
             return response()->json([]);
         }
 
-        $mediaItems = Media::whereIn('id', $validIds)->get()->map(function($media) {
+        // Получаем медиафайлы с правильным порядком из pivot таблицы
+        $mediaItems = Media::whereIn('id', $validIds)
+            ->whereIn('id', function($query) {
+                $query->select('media_id')
+                    ->from('media_relation_entity')
+                    ->where('entity_type', 'App\\Models\\Post');
+            })
+            ->orderByRaw('FIELD(id, ' . implode(',', $validIds) . ')')
+            ->get();
+        
+        $result = $mediaItems->map(function($media) {
             return [
                 'id' => $media->id,
                 'name' => $media->name,
@@ -39,7 +56,7 @@ class MediaController extends Controller
             ];
         });
 
-        return response()->json($mediaItems);
+        return response()->json($result);
     }
 
     public function uploadFilepond(Request $request)

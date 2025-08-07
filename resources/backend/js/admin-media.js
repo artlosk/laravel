@@ -1,6 +1,7 @@
 import '/resources/js/bootstrap.js';
 import $ from 'jquery';
 import toastr from 'toastr';
+import * as bootstrap from 'bootstrap';
 import * as FilePond from 'filepond/dist/filepond.esm.js';
 import FilePondPluginImagePreview from 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.esm.js';
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.esm.js';
@@ -19,6 +20,7 @@ import {
 } from '/resources/js/mediaUtils.js';
 
 window.$ = window.jQuery = $;
+window.bootstrap = bootstrap;
 window.FilePond = FilePond;
 window.FilePondPluginImagePreview = FilePondPluginImagePreview;
 window.FilePondPluginFileValidateType = FilePondPluginFileValidateType;
